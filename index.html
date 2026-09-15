@@ -398,6 +398,7 @@ footer.site a{color:#8fe3dc}
   <!-- ==================== أدويتي (FR-01 / FR-09) ==================== -->
   <main id="screen-meds" class="screen">
     <h3 class="section-title"><i class="fas fa-pills"></i> خزانة الأدوية</h3>
+    <div id="meds-context"></div>
     <div class="inline no-print" style="margin-bottom:16px">
       <button class="btn btn-navy" onclick="exportReport()"><i class="fas fa-file-medical"></i> تصدير تقرير الطبيب</button>
       <button class="btn btn-ghost" onclick="go('screen-add')"><i class="fas fa-plus"></i> إضافة دواء</button>
@@ -411,6 +412,7 @@ footer.site a{color:#8fe3dc}
   <!-- ==================== إضافة دواء (FR-02) ==================== -->
   <main id="screen-add" class="screen">
     <h3 class="section-title"><i class="fas fa-plus-circle"></i> <span id="add-title">إضافة دواء جديد</span></h3>
+    <div id="add-context"></div>
 
     <div class="card">
       <h4><i class="fas fa-camera" style="color:var(--teal)"></i> إضافة بتصوير العلبة</h4>
@@ -823,8 +825,10 @@ const DB = {
   save(uid,d){ localStorage.setItem(this.key(uid),JSON.stringify(d)); }
 };
 
-let U = null;      // المستخدم الحالي (D1)
-let S = null;      // بياناته (D2/D3/D4)
+let U = null;       // المستخدم الحالي (D1)
+let S = null;       // الملف الدوائي محل العمل (D2/D3/D4)
+let DATA_ID = null; // صاحب هذا الملف — مقدم الرعاية يعمل داخل ملف مريضه لا ملفه هو
+let PATIENT = null; // المريض المرتبط (لحسابات مقدمي الرعاية)
 let fontStep = 0;
 
 const todayISO = ()=> new Date().toISOString().slice(0,10);
@@ -834,7 +838,9 @@ const nowMin = ()=>{ const d=new Date(); return d.getHours()*60+d.getMinutes(); 
 const toMin = t => { const [h,m]=t.split(':').map(Number); return h*60+m; };
 const fmtDate = iso => new Date(iso).toLocaleDateString('ar-SA-u-ca-gregory',{day:'numeric',month:'short'});
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function persist(){ if(U) DB.save(U.id,S); }
+function persist(){ if(DATA_ID) DB.save(DATA_ID,S); }
+/* من نفّذ الإجراء فعلياً — يُسجَّل لتبقى المسؤولية واضحة */
+function actor(){ return U && U.role==='caregiver' ? U.name : null; }
 
 function norm(s){
   return String(s||'').replace(/[ً-ْـ]/g,'')
@@ -938,7 +944,12 @@ async function seedAccounts(){
   if(added) DB.saveUsers(users);
   const p = DB.users().find(u=>u.id==='u_demo');
   if(p){ const pd = DB.data(p.id);
-    if(!pd.meds.length){ const su=U, ss=S; U=p; S=pd; seedDemo(true); U=su; S=ss; } }
+    if(!pd.meds.length){
+      const su=U, ss=S, sd=DATA_ID;
+      U=p; S=pd; DATA_ID=p.id;            // لا بد من ضبط سياق الحفظ وإلا ضاعت البيانات التجريبية
+      seedDemo(true);
+      U=su; S=ss; DATA_ID=sd;
+    } }
 }
 async function demoLogin(phone){
   await seedAccounts();
@@ -948,7 +959,12 @@ async function demoLogin(phone){
 function loadDemoAccount(){ demoLogin('0500000000'); }
 function startSession(user){
   clearViews();
-  U = user; S = DB.data(user.id);
+  U = user; PATIENT = null;
+  if(user.role === 'caregiver'){
+    PATIENT = DB.users().find(x => x.code === user.link && x.role === 'patient') || null;
+  }
+  DATA_ID = PATIENT ? PATIENT.id : user.id;   // مقدم الرعاية يفتح ملف مريضه مباشرة
+  S = DB.data(DATA_ID);
   localStorage.setItem('md_session',user.id);
   document.getElementById('screen-auth').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
@@ -967,7 +983,7 @@ function clearViews(){
    .forEach(id=>{ const el = document.getElementById(id); if(el) el.textContent = '—'; });
 }
 function logout(){
-  localStorage.removeItem('md_session'); U=null; S=null;
+  localStorage.removeItem('md_session'); U=null; S=null; DATA_ID=null; PATIENT=null;
   clearViews();
   document.getElementById('app').classList.add('hidden');
   document.getElementById('screen-auth').classList.remove('hidden');
@@ -980,9 +996,11 @@ const NAV = {
   patient:[['screen-home','fa-house','جرعاتي'],['screen-meds','fa-pills','أدويتي'],
            ['screen-advisor','fa-comment-medical','المستشار'],['screen-adherence','fa-chart-line','المتابعة'],
            ['screen-add','fa-plus','إضافة دواء']],
-  caregiver:[['screen-caregiver','fa-user-nurse','مرضاي'],['screen-advisor','fa-comment-medical','المستشار'],
-             ['screen-about','fa-circle-info','عن المنصة']],
-  partner:[['screen-partners','fa-chart-pie','لوحة الشركاء'],['screen-about','fa-circle-info','عن المنصة']]
+  /* مقدم الرعاية هو من يُدخل الأدوية ويجدولها للمريض (السيناريو الثاني في التقرير) */
+  caregiver:[['screen-caregiver','fa-user-nurse','لوحة المريض'],['screen-meds','fa-pills','أدويته'],
+             ['screen-add','fa-plus','إضافة دواء'],['screen-advisor','fa-comment-medical','المستشار']],
+  partner:[['screen-partners','fa-chart-pie','لوحة الشركاء'],
+           ['screen-donate','fa-hand-holding-medical','التبرعات الواردة']]
 };
 function buildNav(){
   document.getElementById('nav-links').innerHTML = NAV[U.role].map(([id,ic,lb])=>
@@ -990,14 +1008,16 @@ function buildNav(){
   const EXTRA = {
     patient:[['screen-log','fa-clock-rotate-left','السجل'],
              ['screen-donate','fa-hand-holding-medical','فائض الأدوية'],
-             ['screen-partners','fa-chart-pie','لوحة الشركاء'],
              ['screen-settings','fa-gear','الإعدادات'],
              ['screen-about','fa-circle-info','عن المنصة'],
              ['screen-contact','fa-envelope','تواصل معنا']],
-    caregiver:[['screen-settings','fa-gear','الإعدادات'],
+    caregiver:[['screen-log','fa-clock-rotate-left','سجل المريض'],
+               ['screen-donate','fa-hand-holding-medical','فائض أدويته'],
+               ['screen-settings','fa-gear','الإعدادات'],
+               ['screen-about','fa-circle-info','عن المنصة'],
                ['screen-contact','fa-envelope','تواصل معنا']],
-    partner:[['screen-donate','fa-hand-holding-medical','الأدوية المتبرَّع بها'],
-             ['screen-settings','fa-gear','الإعدادات'],
+    partner:[['screen-settings','fa-gear','الإعدادات'],
+             ['screen-about','fa-circle-info','عن المنصة'],
              ['screen-contact','fa-envelope','تواصل معنا']]
   };
   const extra = EXTRA[U.role].filter(x=>!NAV[U.role].some(n=>n[0]===x[0]));
@@ -1008,8 +1028,9 @@ function buildNav(){
 /* كل دور يصل فقط إلى شاشاته — لا يكفي إخفاء الزر من القائمة */
 const ALLOWED = {
   patient:['screen-home','screen-meds','screen-add','screen-advisor','screen-adherence','screen-log',
-           'screen-donate','screen-partners','screen-caregiver','screen-settings','screen-about','screen-contact'],
-  caregiver:['screen-caregiver','screen-advisor','screen-settings','screen-about','screen-contact'],
+           'screen-donate','screen-settings','screen-about','screen-contact'],
+  caregiver:['screen-caregiver','screen-meds','screen-add','screen-advisor','screen-log',
+             'screen-donate','screen-settings','screen-about','screen-contact'],
   partner:['screen-partners','screen-donate','screen-settings','screen-about','screen-contact']
 };
 function go(id){
@@ -1023,6 +1044,12 @@ function go(id){
   window.scrollTo({top:0,behavior:'smooth'});
   if(id==='screen-home') renderHome();
   if(id==='screen-meds') renderMeds();
+  if(id==='screen-add'){
+    const ab = document.getElementById('add-context');
+    ab.innerHTML = (U.role==='caregiver' && PATIENT)
+      ? `<div class="alert info small"><i class="fas fa-user-nurse"></i> الدواء سيُضاف إلى ملف المريض
+         <b>${esc(PATIENT.name)}</b> ويُجدول في تنبيهاته، وسيظهر في سجله أنك من أضافه.</div>` : '';
+  }
   if(id==='screen-adherence') renderAdherence();
   if(id==='screen-log') renderLog();
   if(id==='screen-donate') renderDonate();
@@ -1181,7 +1208,8 @@ function takeDose(doseId){
   const d = todayDoses().find(x=>x.doseId===doseId); if(!d) return;
   const al = S.alerts[doseId]||{};
   S.logs.unshift({doseId, medId:d.medId, name:d.name, time:d.time, date:todayISO(),
-                  at:new Date().toISOString(), escalated: !!al.esc, late: nowMin()>toMin(d.time)+GRACE});
+                  at:new Date().toISOString(), escalated: !!al.esc,
+                  late: nowMin()>toMin(d.time)+GRACE, by: actor()});
   const m = S.meds.find(x=>x.id===d.medId);
   if(m && m.remaining>0){ m.remaining--; if(m.remaining<=3) toast(`مخزون «${esc(m.name)}» على وشك النفاد (${m.remaining} حبة).`,'warn'); }
   updateStreak();
@@ -1322,7 +1350,9 @@ function saveMed(e){
   }else{
     S.meds.push({id:'m'+Date.now(), name, strength:document.getElementById('med-strength').value,
       total, remaining: total, times, drugId: drug?drug.id:null, active:true,
-      start: todayISO(), stopped:null});
+      start: todayISO(), stopped:null, addedBy: actor()});
+    if(actor()) S.events.unshift({type:'med-added', at:new Date().toISOString(), name,
+      text:'أضاف مقدم الرعاية '+actor()+' دواء «'+name+'» إلى ملفك'});
   }
   persist(); resetMedForm(); renderMeds(); renderHome();
   toast(id?'تم تحديث الدواء.':'تمت إضافة الدواء وجدولته.','',4000);
@@ -1607,7 +1637,15 @@ function renderHome(){
   }).join('');
 }
 function renderMeds(){
-  if(!U||U.role!=='patient') return;
+  if(!U || (U.role!=='patient' && U.role!=='caregiver')) return;
+  const isCare = U.role === 'caregiver';
+  document.querySelector('#screen-meds .section-title').innerHTML = isCare
+    ? '<i class="fas fa-pills"></i> خزانة أدوية ' + esc(PATIENT ? PATIENT.name : 'المريض')
+    : '<i class="fas fa-pills"></i> خزانة الأدوية';
+  const ctxBox = document.getElementById('meds-context');
+  if(ctxBox) ctxBox.innerHTML = isCare && PATIENT
+    ? `<div class="alert info small"><i class="fas fa-user-nurse"></i> تعمل الآن داخل الملف الدوائي للمريض
+       <b>${esc(PATIENT.name)}</b> — كل إضافة أو تعديل يُسجَّل باسمك ويظهر في سجله.</div>` : '';
   const box = document.getElementById('meds-list');
   const list = S.meds.filter(m=>m.active);
   document.getElementById('meds-empty').classList.toggle('hidden', list.length>0);
@@ -1661,7 +1699,7 @@ function renderLog(){
   let rows = [];
   S.logs.forEach(l=> rows.push({t:'taken',at:l.at,
     title:'<span class="badge b-ok">جرعة مؤكدة</span>',
-    d:`${esc(l.name)} — الموعد ${l.time}${l.late?' <span class="badge b-warn">متأخرة</span>':''}${l.escalated?' <span class="badge b-danger">بعد تصعيد</span>':''}`}));
+    d:`${esc(l.name)} — الموعد ${l.time}${l.late?' <span class="badge b-warn">متأخرة</span>':''}${l.escalated?' <span class="badge b-danger">بعد تصعيد</span>':''}${l.by?' <span class="badge b-info">سجّلها '+esc(l.by)+'</span>':''}`}));
   const set = takenSet();
   for(let i=0;i<7;i++){ const day=daysAgoISO(i);
     schedFor(day).forEach(d=>{
@@ -1677,6 +1715,7 @@ function renderLog(){
     if(e.type==='donation') rows.push({t:'donation',at:e.at,title:'<span class="badge b-teal">تبرع</span>',d:esc(e.text)});
     if(e.type==='skip') rows.push({t:'missed',at:e.at,title:'<span class="badge b-warn">تخطّي</span>',d:esc(e.name)+' — '+esc(e.text)});
     if(e.type==='nudge') rows.push({t:'escalation',at:e.at,title:'<span class="badge b-info">تنبيه من مقدم الرعاية</span>',d:esc(e.text)});
+    if(e.type==='med-added') rows.push({t:'all',at:e.at,title:'<span class="badge b-teal">إضافة دواء</span>',d:esc(e.text)});
   });
   if(f!=='all') rows = rows.filter(r=>r.t===f);
   rows.sort((a,b)=> b.at.localeCompare(a.at));
@@ -1713,7 +1752,8 @@ function exportReport(){
   <div class="head">
     <div><h1>تقرير الالتزام الدوائي</h1><div>منصة جرعتي — myDose</div></div>
     <div style="text-align:left">
-      <b>${esc(U.name)}</b><br>رمز المريض: ${esc(U.code)}<br>
+      <b>${esc(PATIENT ? PATIENT.name : U.name)}</b><br>رمز المريض: ${esc(PATIENT ? PATIENT.code : U.code)}<br>
+      ${PATIENT ? 'أُصدر بواسطة: '+esc(U.name)+'<br>' : ''}
       تاريخ التقرير: ${new Date().toLocaleDateString('ar-SA')}<br>الفترة: آخر ٣٠ يوماً</div>
   </div>
   <div class="kpis">
@@ -1912,7 +1952,9 @@ function confirmDonate(medId){
   const c = CHARITIES.find(x=>x.id===document.getElementById('don-charity').value);
   const ref = 'DN-'+Math.floor(100000+Math.random()*899999);
   S.events.unshift({type:'donation',at:new Date().toISOString(),med:m.name,qty:m.remaining,
-    charity:c.name, ref, text:`تبرّع بـ${m.remaining} حبة من ${m.name} إلى ${c.name} — رقم التتبع ${ref}`});
+    charity:c.name, ref, by: actor(),
+    text:`تبرّع بـ${m.remaining} حبة من ${m.name} إلى ${c.name} — رقم التتبع ${ref}`
+         + (actor() ? ` (بواسطة ${actor()})` : '')});
   m.remaining = 0; persist(); closeModal(); renderDonate();
   toast(`سُجّل التبرع برقم تتبع <b>${ref}</b>. ستتواصل معك الجهة لترتيب الاستلام.`,'',8000);
 }
@@ -1920,30 +1962,23 @@ function confirmDonate(medId){
 /* ==========================================================================
    FR-04 — لوحة مقدم الرعاية (المتابعة عن بُعد واستقبال التصعيد)
    ========================================================================== */
-function linkedPatient(){
-  const p = DB.users().find(u=>u.code===U.link && u.role==='patient');
-  return p? {user:p, data:DB.data(p.id)} : null;
-}
 function renderCaregiver(){
   const box = document.getElementById('caregiver-body');
   if(U.role!=='caregiver'){
     box.innerHTML = `<div class="alert info">هذه الشاشة مخصّصة لحسابات مقدّمي الرعاية.
-      شارك رمز الربط الخاص بك <b>${esc(U.code)}</b> مع أحد أفراد أسرتك لينشئ حساب مقدم رعاية ويتابع التزامك.</div>`;
+      شارك رمز حسابك <b>${esc(U.code)}</b> مع أحد أفراد أسرتك لينشئ حساب «مقدم رعاية» مرتبطاً بك.</div>`;
     return;
   }
-  const L = linkedPatient();
-  if(!L){ box.innerHTML = '<div class="alert warn">لا يوجد مريض مرتبط بحسابك.</div>'; return; }
-  const saveS = S; S = L.data;                 // حساب مؤشرات المريض المرتبط
-  const a30=adherence(30), a7=adherence(7), doses=todayDoses();
-  const escs = L.data.events.filter(e=>e.type==='escalation').slice(0,6);
-  const low = L.data.meds.filter(m=>m.active&&m.remaining<=5);
-  const days = dailySeries(14);
-  S = saveS;
+  if(!PATIENT){ box.innerHTML = '<div class="alert warn">لا يوجد مريض مرتبط بحسابك.</div>'; return; }
+  /* S هنا هو ملف المريض نفسه — مقدم الرعاية يعمل داخله مباشرة */
+  const a30 = adherence(30), a7 = adherence(7), doses = todayDoses();
+  const escs = S.events.filter(e=>e.type==='escalation').slice(0,6);
+  const low  = S.meds.filter(m=>m.active && m.remaining<=5);
   box.innerHTML = `
     <div class="card" style="background:linear-gradient(135deg,var(--navy),var(--navy-600));color:#fff;border:none">
       <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;align-items:center">
-        <div><h2 style="margin:0">${esc(L.user.name)}</h2>
-          <p class="small" style="opacity:.85;margin:0">رمز المريض ${esc(L.user.code)} · متابعة عن بُعد</p></div>
+        <div><h2 style="margin:0">${esc(PATIENT.name)}</h2>
+          <p class="small" style="opacity:.85;margin:0">رمز المريض ${esc(PATIENT.code)} · متابعة عن بُعد</p></div>
         <div style="text-align:center"><div style="font-size:2rem;font-weight:800">${a30.sched?a30.pct+'%':'—'}</div>
           <div class="small" style="opacity:.85">التزام ٣٠ يوماً</div></div>
       </div>
@@ -1952,28 +1987,39 @@ function renderCaregiver(){
       <ul style="margin:8px 0 0;padding-inline-start:18px">
       ${escs.map(e=>`<li>${esc(e.name)} — موعد ${esc(e.time)} · ${new Date(e.at).toLocaleString('ar-SA')}</li>`).join('')}
       </ul></div>`:'<div class="alert"><i class="fas fa-circle-check"></i> لا توجد تنبيهات تصعيد حالياً.</div>'}
-    ${low.length? `<div class="alert warn"><b>أدوية قاربت النفاد:</b> ${low.map(m=>esc(m.name)+` (${m.remaining})`).join(' · ')}</div>`:''}
+    ${low.length? `<div class="alert warn"><b>أدوية قاربت النفاد:</b>
+      ${low.map(m=>esc(m.name)+` (${m.remaining})`).join(' · ')}
+      <button class="btn btn-sm btn-ghost no-print" onclick="go('screen-meds')">إدارة الأدوية</button></div>`:''}
     <div class="grid g4" style="margin:16px 0">
       <div class="kpi"><div class="v">${doses.filter(d=>d.taken).length}/${doses.length}</div><div class="l">جرعات اليوم</div></div>
       <div class="kpi"><div class="v">${a7.sched?a7.pct+'%':'—'}</div><div class="l">التزام ٧ أيام</div></div>
       <div class="kpi"><div class="v">${a30.missed}</div><div class="l">جرعات فائتة (٣٠ يوماً)</div></div>
-      <div class="kpi"><div class="v">${L.data.streak}</div><div class="l">أيام التزام متتالية</div></div>
+      <div class="kpi"><div class="v">${S.streak}</div><div class="l">أيام التزام متتالية</div></div>
     </div>
-    <div class="card"><h4>الالتزام اليومي — آخر ١٤ يوماً</h4>${chartV(days)}</div>
-    <div class="card"><h4>جدول اليوم</h4>
+    <div class="card"><h4>الالتزام اليومي — آخر ١٤ يوماً</h4>${chartV(dailySeries(14))}</div>
+    <div class="card"><h4>جدول اليوم — يمكنك تسجيل الجرعة التي أعطيتها بنفسك</h4>
       ${doses.length? doses.map(d=>`<div class="med-row" style="margin-bottom:8px">
-        <div class="info"><b>${d.time}</b> — ${esc(d.name)}</div>
-        <div>${d.taken?'<span class="badge b-ok">مأخوذة</span>':d.late?'<span class="badge b-danger">متأخرة</span>':'<span class="badge b-info">قادمة</span>'}</div>
-      </div>`).join('') : '<p class="muted">لا توجد جرعات مجدولة اليوم.</p>'}
-      <button class="btn btn-ghost" onclick="nudge()"><i class="fas fa-paper-plane"></i> إرسال تذكير لطيف للمريض</button>
+        <div class="info"><b>${d.time}</b> — ${esc(d.name)} <span class="muted small">${esc(d.strength||'')}</span></div>
+        <div>${d.taken
+            ? '<span class="badge b-ok"><i class="fas fa-check"></i> مأخوذة</span>'
+            : d.skipped ? '<span class="badge b-warn">تم تخطّيها</span>'
+            : `<span class="badge ${d.late?'b-danger':'b-info'}">${d.late?'متأخرة':'قادمة'}</span>
+               <button class="btn btn-sm btn-primary no-print" style="margin-inline-start:8px"
+                 onclick="takeDose('${d.doseId}');renderCaregiver()">تسجيل الجرعة</button>`}</div>
+      </div>`).join('') : '<p class="muted">لا توجد جرعات مجدولة اليوم — أضف دواءً من زر «إضافة دواء».</p>'}
+      <div class="inline no-print" style="margin-top:14px">
+        <button class="btn btn-ghost" onclick="nudge()"><i class="fas fa-paper-plane"></i> إرسال تذكير لطيف</button>
+        <button class="btn btn-navy" onclick="exportReport()"><i class="fas fa-file-medical"></i> تقرير الطبيب</button>
+      </div>
     </div>
-    <p class="hint">تلتزم هذه اللوحة بمبدأ «الاطمئنان دون مراقبة مرهقة»: تعرض حالة الالتزام والتنبيهات فقط، لا محتوى استشارات المريض الخاصة.</p>`;
+    <p class="hint">صلاحياتك: إدارة الأدوية وجدولتها، تسجيل الجرعات التي تعطيها، ومتابعة الالتزام.
+      ولا تظهر لك أسئلة المريض الخاصة للمستشار الدوائي — فصل مقصود بين «الاطمئنان» و«المراقبة».</p>`;
 }
 function nudge(){
-  const L = linkedPatient(); if(!L) return;
-  L.data.events.unshift({type:'nudge',at:new Date().toISOString(),
+  if(!PATIENT) return;
+  S.events.unshift({type:'nudge',at:new Date().toISOString(),
     text:`تذكير ودّي من ${U.name}: لا تنسَ جرعتك 💙`});
-  DB.save(L.user.id, L.data);
+  persist();
   toast('أُرسل التذكير إلى المريض.','',4000);
 }
 
