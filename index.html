@@ -4,7 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>جرعتي | MyDose</title>
-<meta name="theme-color" content="#0b2f4a"/>
+<meta name="theme-color" content="#0b2f4a" media="(prefers-color-scheme: dark)"/>
+<meta name="theme-color" content="#f2f6f8" media="(prefers-color-scheme: light)"/>
+<meta name="color-scheme" content="light dark"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f4468'/%3E%3Cpath d='M22 42 42 22' stroke='%2318a39b' stroke-width='9' stroke-linecap='round'/%3E%3Ccircle cx='22' cy='42' r='9' fill='%2318a39b'/%3E%3Ccircle cx='42' cy='22' r='9' fill='%23ffffff'/%3E%3C/svg%3E"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="جرعتي | MyDose — منصة الالتزام الدوائي"/>
+<meta property="og:description" content="تذكير متصاعد، مستشار دوائي، نسبة التزام موثّقة، وتقرير قابل للتصدير للطبيب."/>
+<meta property="og:locale" content="ar_SA"/>
+<meta name="twitter:card" content="summary"/>
 <meta name="description" content="جرعتي MyDose — منصة الالتزام الدوائي: تذكير متصاعد، مستشار دوائي، نسبة التزام موثّقة، وتقرير للطبيب.">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
@@ -36,6 +44,14 @@ body.dark{
   --shadow:0 4px 14px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
+/* تركيز واضح لكل عنصر تفاعلي — شرط أساسي لإمكانية الوصول بلوحة المفاتيح */
+:where(button,a,input,select,textarea,[tabindex]):focus-visible{
+  outline:3px solid var(--teal); outline-offset:2px; border-radius:9px;
+}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.field-err{color:var(--danger);font-size:.88rem;font-weight:600;margin:8px 0 0;display:none}
+.field-err.show{display:block}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important;transition-duration:.001ms !important} }
 html{font-size:16px}
 body{
   margin:0;font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Tahoma,Arial,sans-serif;
@@ -152,6 +168,8 @@ body.dark .kpi .v{color:var(--teal)}
 .dose-card.due{border-inline-start-color:var(--teal)}
 .dose-card.late{border-inline-start-color:var(--danger)}
 .dose-card.done{border-inline-start-color:var(--ok);background:var(--surface-2)}
+.dose-card.skipped{border-inline-start-color:var(--warn);background:var(--surface-2);opacity:.9}
+.tl-item.skipped:before{border-color:var(--warn)}
 .dose-time{font-size:1.5rem;font-weight:800;color:var(--navy)}
 body.dark .dose-time{color:#9fd8e8}
 .dose-name{font-size:1.2rem;font-weight:700;margin:2px 0}
@@ -178,6 +196,7 @@ body.dark .msg.critical{background:#3d1212;color:#fecaca}
 .chip{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:8px 14px;
   font-size:.87rem;cursor:pointer;color:var(--text-2)}
 .chip:hover{border-color:var(--teal);color:var(--teal-dark)}
+button.chip{font:inherit}
 
 /* ---------- جداول ---------- */
 table{width:100%;border-collapse:collapse;font-size:.93rem}
@@ -261,19 +280,20 @@ footer.site a{color:#8fe3dc}
     <form id="form-login" onsubmit="doLogin(event)">
       <div class="field">
         <label for="log-phone">رقم الجوال</label>
-        <input type="tel" id="log-phone" inputmode="numeric" placeholder="05xxxxxxxx" required>
+        <input type="tel" id="log-phone" inputmode="numeric" autocomplete="username" pattern="05[0-9]{8}" placeholder="05xxxxxxxx" required>
       </div>
       <div class="field">
         <label for="log-pin">الرمز السري (4 أرقام)</label>
-        <input type="password" id="log-pin" inputmode="numeric" maxlength="4" placeholder="••••" required>
+        <input type="password" id="log-pin" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4" placeholder="••••" required>
       </div>
+      <p class="field-err" id="login-err" role="alert"></p>
       <button class="btn btn-primary btn-block" type="submit"><i class="fas fa-right-to-bracket"></i> دخول</button>
       <div class="hint" style="margin-top:16px;border:1px dashed var(--border);border-radius:11px;padding:12px">
         <b>حسابات العرض الجاهزة — الرمز السري <span style="color:var(--teal-dark)">1111</span>:</b>
         <div class="chips" style="margin:9px 0 0">
-          <span class="chip" onclick="demoLogin('0500000000')"><i class="fas fa-user"></i> مريض · 0500000000</span>
-          <span class="chip" onclick="demoLogin('0500000001')"><i class="fas fa-user-nurse"></i> مقدم رعاية · 0500000001</span>
-          <span class="chip" onclick="demoLogin('0500000002')"><i class="fas fa-hand-holding-heart"></i> جمعية خيرية · 0500000002</span>
+          <button type="button" class="chip" onclick="demoLogin('0500000000')"><i class="fas fa-user"></i> مريض · 0500000000</button>
+          <button type="button" class="chip" onclick="demoLogin('0500000001')"><i class="fas fa-user-nurse"></i> مقدم رعاية · 0500000001</button>
+          <button type="button" class="chip" onclick="demoLogin('0500000002')"><i class="fas fa-hand-holding-heart"></i> جمعية خيرية · 0500000002</button>
         </div>
       </div>
     </form>
@@ -282,15 +302,15 @@ footer.site a{color:#8fe3dc}
     <form id="form-reg" class="hidden" onsubmit="doRegister(event)">
       <div class="field">
         <label for="reg-name">الاسم</label>
-        <input type="text" id="reg-name" placeholder="مثال: صالح العتيبي" required>
+        <input type="text" id="reg-name" autocomplete="name" maxlength="60" placeholder="مثال: صالح العتيبي" required>
       </div>
       <div class="field">
         <label for="reg-phone">رقم الجوال</label>
-        <input type="tel" id="reg-phone" inputmode="numeric" placeholder="05xxxxxxxx" required>
+        <input type="tel" id="reg-phone" inputmode="numeric" autocomplete="username" pattern="05[0-9]{8}" placeholder="05xxxxxxxx" required>
       </div>
       <div class="field">
         <label for="reg-pin">رمز سري (4 أرقام)</label>
-        <input type="password" id="reg-pin" inputmode="numeric" maxlength="4" placeholder="••••" required>
+        <input type="password" id="reg-pin" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4" placeholder="••••" required>
       </div>
       <div class="field">
         <label for="reg-role">نوع الحساب</label>
@@ -305,6 +325,7 @@ footer.site a{color:#8fe3dc}
         <input type="text" id="reg-link" placeholder="مثال: MD-4821" maxlength="10">
         <p class="hint">يجده المريض في «الإعدادات ← رمز الربط» ويشاركه معك.</p>
       </div>
+      <p class="field-err" id="reg-err" role="alert"></p>
       <button class="btn btn-primary btn-block" type="submit"><i class="fas fa-user-plus"></i> إنشاء الحساب</button>
     </form>
 
@@ -394,7 +415,8 @@ footer.site a{color:#8fe3dc}
     <div class="card">
       <h4><i class="fas fa-camera" style="color:var(--teal)"></i> إضافة بتصوير العلبة</h4>
       <p class="muted small">ارفع صورة علبة الدواء ليستخرج النظام الاسم والجرعة آلياً بدل الإدخال اليدوي.</p>
-      <input type="file" id="box-photo" accept="image/*" capture="environment" onchange="scanBox(this)" class="field">
+      <label for="box-photo" class="sr-only">اختر صورة علبة الدواء</label>
+    <input type="file" id="box-photo" accept="image/*" capture="environment" onchange="scanBox(this)" class="field" aria-describedby="scan-result">
       <div id="scan-result"></div>
       <p class="hint">في هذا النموذج تُحاكى قراءة الصورة بمطابقتها مع قاعدة الأدوية المعتمدة؛ وفي نسخة الإنتاج يتولاها نموذج رؤية حاسوبية (E3).</p>
     </div>
@@ -415,7 +437,7 @@ footer.site a{color:#8fe3dc}
           </div>
           <div class="field">
             <label for="med-total">الكمية في العلبة</label>
-            <input type="number" id="med-total" min="1" placeholder="مثال: 30" required>
+            <input type="number" id="med-total" min="1" max="2000" step="1" inputmode="numeric" placeholder="مثال: 30" required>
           </div>
         </div>
         <div class="field">
@@ -447,11 +469,12 @@ footer.site a{color:#8fe3dc}
     <div class="alert info small">
       يجيب المستشار من <b>قاعدة الأدوية المعتمدة</b> فقط. إذا لم تتوفر إجابة موثّقة أو ظهرت علامة خطر، يُحيلك فوراً إلى الطبيب البشري ولا يجتهد من عنده.
     </div>
-    <div class="chat" id="chat-box"></div>
+    <div class="chat" id="chat-box" role="log" aria-live="polite" aria-label="محادثة المستشار الدوائي"></div>
     <div class="chips" id="chat-chips"></div>
     <form onsubmit="askAdvisor(event)" style="display:flex;gap:10px">
+      <label for="chat-input" class="sr-only">اكتب سؤالك للمستشار الدوائي</label>
       <input type="text" id="chat-input" class="field" style="margin:0;flex:1" placeholder="اكتب سؤالك… مثال: هل يتعارض الأسبرين مع الوارفارين؟" required>
-      <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane"></i></button>
+      <button class="btn btn-primary" type="submit" aria-label="إرسال السؤال" title="إرسال"><i class="fas fa-paper-plane"></i></button>
       <button class="btn btn-ghost" type="button" onclick="startVoice('advisor')" title="اسأل صوتياً"><i class="fas fa-microphone"></i></button>
     </form>
   </main>
@@ -491,6 +514,7 @@ footer.site a{color:#8fe3dc}
   <main id="screen-log" class="screen">
     <h3 class="section-title"><i class="fas fa-clock-rotate-left"></i> سجل الجرعات والأحداث</h3>
     <div class="inline no-print" style="margin-bottom:14px">
+      <label for="log-filter" class="sr-only">تصفية السجل حسب نوع الحدث</label>
       <select id="log-filter" class="field" style="margin:0" onchange="renderLog()">
         <option value="all">كل الأحداث</option>
         <option value="taken">الجرعات المؤكدة</option>
@@ -553,7 +577,24 @@ footer.site a{color:#8fe3dc}
   <main id="screen-settings" class="screen">
     <h3 class="section-title"><i class="fas fa-gear"></i> الإعدادات</h3>
     <div class="card">
-      <h4>حسابي</h4>
+      <h4>ملفي الشخصي</h4>
+      <div class="inline">
+        <div class="field"><label for="prof-name">الاسم</label>
+          <input type="text" id="prof-name" maxlength="60" autocomplete="name"></div>
+        <div class="field"><label for="prof-phone">رقم الجوال</label>
+          <input type="tel" id="prof-phone" disabled></div>
+      </div>
+      <div class="inline">
+        <div class="field"><label for="prof-pin">رمز سري جديد (اختياري)</label>
+          <input type="password" id="prof-pin" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••"></div>
+        <div class="field"><label for="prof-pin2">تأكيد الرمز الجديد</label>
+          <input type="password" id="prof-pin2" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••"></div>
+      </div>
+      <p class="field-err" id="prof-err" role="alert"></p>
+      <button class="btn btn-primary" onclick="saveProfile()"><i class="fas fa-check"></i> حفظ التعديلات</button>
+    </div>
+    <div class="card">
+      <h4>بيانات الحساب</h4>
       <div id="account-box"></div>
     </div>
     <div class="card">
@@ -625,10 +666,10 @@ footer.site a{color:#8fe3dc}
     <div class="card" style="margin-top:20px">
       <form onsubmit="sendContact(event)">
         <div class="inline">
-          <div class="field"><label for="c-name">الاسم</label><input type="text" id="c-name" required></div>
-          <div class="field"><label for="c-mail">البريد الإلكتروني</label><input type="email" id="c-mail" required></div>
+          <div class="field"><label for="c-name">الاسم</label><input type="text" id="c-name" autocomplete="name" maxlength="60" required></div>
+          <div class="field"><label for="c-mail">البريد الإلكتروني</label><input type="email" id="c-mail" autocomplete="email" required></div>
         </div>
-        <div class="field"><label for="c-msg">الرسالة</label><textarea id="c-msg" rows="5" required></textarea></div>
+        <div class="field"><label for="c-msg">الرسالة</label><textarea id="c-msg" rows="5" maxlength="1000" required></textarea></div>
         <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane"></i> إرسال</button>
       </form>
     </div>
@@ -643,7 +684,7 @@ footer.site a{color:#8fe3dc}
 
 </div><!-- /app -->
 
-<div class="toast-box" id="toasts"></div>
+<div class="toast-box" id="toasts" role="status" aria-live="polite"></div>
 <div id="modal-root"></div>
 
 <script>
@@ -809,7 +850,34 @@ function drugById(id){ return DRUGS.find(d=>d.id===id); }
 /* ==========================================================================
    FR-01 — الحسابات والأدوار والمصادقة
    ========================================================================== */
+/* الرمز السري لا يُخزَّن نصاً صريحاً بل بصمة SHA-256 مملّحة برقم الجوال */
+async function hashPin(phone, pin){
+  const str = phone + '|' + pin + '|mydose-v1';
+  if(window.crypto && window.crypto.subtle){
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  }
+  let h = 0; for(const c of str) h = (h*31 + c.charCodeAt(0)) >>> 0;   // بديل عند غياب واجهة التشفير
+  return 'x' + h.toString(16);
+}
+async function checkPin(user, pin){
+  if(user.pinHash) return user.pinHash === await hashPin(user.phone, pin);
+  if(user.pin !== undefined){                       // ترقية الحسابات القديمة تلقائياً
+    if(user.pin !== pin) return false;
+    const users = DB.users(); const u = users.find(x=>x.id===user.id);
+    u.pinHash = await hashPin(u.phone, pin); delete u.pin; DB.saveUsers(users);
+    delete user.pin; user.pinHash = u.pinHash; return true;
+  }
+  return false;
+}
+const isPhone = v => /^05\d{8}$/.test(v);
+const isPin   = v => /^\d{4}$/.test(v);
+function showErr(id, msg){
+  const el = document.getElementById(id);
+  if(!el) return; el.textContent = msg || ''; el.classList.toggle('show', !!msg);
+}
 function switchAuth(m){
+  showErr('login-err',''); showErr('reg-err','');
   document.getElementById('tab-login').classList.toggle('active',m==='login');
   document.getElementById('tab-reg').classList.toggle('active',m==='reg');
   document.getElementById('form-login').classList.toggle('hidden',m!=='login');
@@ -819,47 +887,61 @@ function toggleLinkField(){
   const r = document.getElementById('reg-role').value;
   document.getElementById('link-field').classList.toggle('hidden', r!=='caregiver');
 }
-function doRegister(e){
+async function doRegister(e){
   e.preventDefault();
+  showErr('reg-err','');
   const users = DB.users();
+  const name  = document.getElementById('reg-name').value.trim();
   const phone = document.getElementById('reg-phone').value.trim();
-  if(users.some(u=>u.phone===phone)) return alert('هذا الرقم مسجّل مسبقاً. سجّل الدخول بدلاً من ذلك.');
-  const role = document.getElementById('reg-role').value;
-  const link = document.getElementById('reg-link').value.trim().toUpperCase();
-  if(role==='caregiver' && !users.some(u=>u.code===link))
-    return alert('رمز الربط غير صحيح. اطلب من المريض رمزه من شاشة الإعدادات.');
+  const pin   = document.getElementById('reg-pin').value.trim();
+  const role  = document.getElementById('reg-role').value;
+  const link  = document.getElementById('reg-link').value.trim().toUpperCase();
+  if(name.length < 2)  return showErr('reg-err','الرجاء كتابة الاسم كاملاً.');
+  if(!isPhone(phone))  return showErr('reg-err','رقم الجوال يجب أن يبدأ بـ05 ويتكوّن من عشرة أرقام.');
+  if(users.some(u=>u.phone===phone)) return showErr('reg-err','هذا الرقم مسجّل مسبقاً — سجّل الدخول بدلاً من إنشاء حساب.');
+  if(!isPin(pin))      return showErr('reg-err','الرمز السري أربعة أرقام فقط.');
+  if(role==='caregiver' && !users.some(u=>u.code===link && u.role==='patient'))
+    return showErr('reg-err','رمز الربط غير صحيح. يجده المريض في «الإعدادات ← بيانات الحساب».');
   const user = {
-    id:'u'+Date.now(), name:document.getElementById('reg-name').value.trim(), phone:phone,
-    pin:document.getElementById('reg-pin').value, role:role,
+    id:'u'+Date.now(), name, phone, role,
+    pinHash: await hashPin(phone, pin),
     code:'MD-'+Math.floor(1000+Math.random()*9000), link: role==='caregiver'?link:''
   };
   users.push(user); DB.saveUsers(users);
   startSession(user);
 }
-function doLogin(e){
+async function doLogin(e){
   e.preventDefault();
+  showErr('login-err','');
   const phone = document.getElementById('log-phone').value.trim();
-  const pin = document.getElementById('log-pin').value;
-  const user = DB.users().find(u=>u.phone===phone && u.pin===pin);
-  if(!user) return alert('رقم الجوال أو الرمز السري غير صحيح.');
+  const pin   = document.getElementById('log-pin').value.trim();
+  if(!isPhone(phone)) return showErr('login-err','رقم الجوال يجب أن يبدأ بـ05 ويتكوّن من عشرة أرقام.');
+  if(!isPin(pin))     return showErr('login-err','الرمز السري أربعة أرقام.');
+  const user = DB.users().find(u=>u.phone===phone);
+  if(!user || !(await checkPin(user, pin)))
+    return showErr('login-err','رقم الجوال أو الرمز السري غير صحيح.');
   startSession(user);
 }
 /* حسابات العرض الثلاثة: تُهيَّأ تلقائياً في أي متصفح يفتح المنصة */
 const DEMO_USERS = [
-  {id:'u_demo',      name:'صالح الفرج',        phone:'0500000000', pin:'1111', role:'patient',   code:'MD-1000', link:''},
-  {id:'u_demo_care', name:'سارة العتيبي',      phone:'0500000001', pin:'1111', role:'caregiver', code:'MD-2000', link:'MD-1000'},
-  {id:'u_demo_ngo',  name:'جمعية إرث للدواء',  phone:'0500000002', pin:'1111', role:'partner',   code:'MD-3000', link:''}
+  {id:'u_demo',      name:'صالح الفرج',        phone:'0500000000', role:'patient',   code:'MD-1000', link:''},
+  {id:'u_demo_care', name:'سارة العتيبي',      phone:'0500000001', role:'caregiver', code:'MD-2000', link:'MD-1000'},
+  {id:'u_demo_ngo',  name:'جمعية إرث للدواء',  phone:'0500000002', role:'partner',   code:'MD-3000', link:''}
 ];
-function seedAccounts(){
+async function seedAccounts(){
   const users = DB.users(); let added = false;
-  DEMO_USERS.forEach(d=>{ if(!users.some(u=>u.phone===d.phone)){ users.push({...d}); added = true; } });
+  for(const d of DEMO_USERS){
+    if(!users.some(u=>u.phone===d.phone)){
+      users.push({...d, pinHash: await hashPin(d.phone, '1111')}); added = true;
+    }
+  }
   if(added) DB.saveUsers(users);
   const p = DB.users().find(u=>u.id==='u_demo');
   if(p){ const pd = DB.data(p.id);
     if(!pd.meds.length){ const su=U, ss=S; U=p; S=pd; seedDemo(true); U=su; S=ss; } }
 }
-function demoLogin(phone){
-  seedAccounts();
+async function demoLogin(phone){
+  await seedAccounts();
   const u = DB.users().find(x=>x.phone===phone);
   if(u) startSession(u);
 }
@@ -923,7 +1005,17 @@ function buildNav(){
     extra.map(([id,ic,lb])=>`<button onclick="go('${id}');toggleMenu()"><i class="fas ${ic}"></i> ${lb}</button>`).join('')
     + `<div class="sep"></div><button onclick="logout()"><i class="fas fa-right-from-bracket"></i> تسجيل الخروج (${esc(U.name)})</button>`;
 }
+/* كل دور يصل فقط إلى شاشاته — لا يكفي إخفاء الزر من القائمة */
+const ALLOWED = {
+  patient:['screen-home','screen-meds','screen-add','screen-advisor','screen-adherence','screen-log',
+           'screen-donate','screen-partners','screen-caregiver','screen-settings','screen-about','screen-contact'],
+  caregiver:['screen-caregiver','screen-advisor','screen-settings','screen-about','screen-contact'],
+  partner:['screen-partners','screen-donate','screen-settings','screen-about','screen-contact']
+};
 function go(id){
+  if(U && ALLOWED[U.role] && !ALLOWED[U.role].includes(id)){
+    toast('هذه الشاشة غير متاحة لنوع حسابك.','warn',4000); return;
+  }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const t = document.getElementById(id); if(t) t.classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.s===id));
@@ -962,7 +1054,7 @@ function toast(msg,type='',ms=6000){
     <i class="fas ${type==='danger'?'fa-triangle-exclamation':type==='warn'?'fa-bell':'fa-circle-info'}"
        style="color:var(--${type==='danger'?'danger':type==='warn'?'warn':'teal'});margin-top:3px"></i>
     <div style="flex:1">${msg}</div>
-    <button class="icon-btn" onclick="this.closest('.toast').remove()"><i class="fas fa-xmark"></i></button></div>`;
+    <button class="icon-btn" onclick="this.closest('.toast').remove()" aria-label="إغلاق التنبيه" title="إغلاق"><i class="fas fa-xmark"></i></button></div>`;
   box.appendChild(el);
   while(box.children.length>3) box.firstChild.remove();
   setTimeout(()=>el.remove(),ms);
@@ -1027,9 +1119,10 @@ function todayDoses(){
   const set = takenSet(), t = todayISO(), now = nowMin();
   return schedFor(t).map(d=>{
     const taken = set.has(d.doseId);
-    const late = !taken && now > toMin(d.time)+GRACE;
-    const due  = !taken && !late && now >= toMin(d.time)-5;
-    return {...d, taken, late, due, log:S.logs.find(l=>l.doseId===d.doseId)};
+    const skipped = !taken && !!(S.alerts[d.doseId] && S.alerts[d.doseId].skipped);
+    const late = !taken && !skipped && now > toMin(d.time)+GRACE;
+    const due  = !taken && !skipped && !late && now >= toMin(d.time)-5;
+    return {...d, taken, skipped, late, due, log:S.logs.find(l=>l.doseId===d.doseId)};
   });
 }
 function adherence(days){
@@ -1213,6 +1306,14 @@ function saveMed(e){
   const times = [1,2,3].filter(i=>i<=n).map(i=>document.getElementById('t'+i).value).filter(Boolean);
   const drug = findDrug(name)[0];
   const total = parseInt(document.getElementById('med-total').value);
+  /* تحقق من المدخلات قبل الحفظ */
+  if(name.length < 2) return toast('اسم الدواء قصير جداً — اكتبه كما هو على العلبة.','warn');
+  if(!Number.isFinite(total) || total < 1 || total > 2000)
+    return toast('الكمية يجب أن تكون رقماً بين 1 و 2000 حبة.','warn');
+  if(n > 0 && times.length < n)
+    return toast('حدّد وقتاً لكل جرعة قبل الحفظ.','warn');
+  if(new Set(times).size !== times.length)
+    return toast('لا يمكن تكرار نفس الموعد مرتين في اليوم.','warn');
   if(id){
     const m = S.meds.find(x=>x.id===id);
     const diff = total - m.total;
@@ -1252,21 +1353,23 @@ function resetMedForm(){
   document.getElementById('scan-result').innerHTML='';
   showTimeFields(0);
 }
-function refill(id){
+async function refill(id){
   const m = S.meds.find(x=>x.id===id);
-  const v = prompt(`إعادة تعبئة «${m.name}»\nكم حبة أضفت؟`,'30');
-  const a = parseInt(v); if(!a||a<1) return;
+  const v = await uiPrompt('إعادة تعبئة «'+m.name+'»','كم حبة أضفت إلى المخزون؟','30');
+  const a = parseInt(v);
+  if(!Number.isFinite(a) || a < 1 || a > 2000){ if(v!==null) toast('أدخل رقماً بين 1 و 2000.','warn'); return; }
   m.remaining += a; m.total += a; persist(); renderMeds();
   toast('تمت إعادة التعبئة.','',3000);
 }
-function stopMed(id){
+async function stopMed(id){
   const m = S.meds.find(x=>x.id===id);
-  if(!confirm(`إيقاف «${m.name}»؟ سيتوقف تنبيهه ويُرشَّح الفائض منه للتبرع.`)) return;
+  if(!await uiConfirm('إيقاف «'+m.name+'»؟\nسيتوقف تنبيهه ويُرشَّح الفائض منه للتبرع.','إيقاف الدواء')) return;
   m.active=false; m.stopped=todayISO(); persist(); renderMeds(); renderHome();
   toast('أُوقف الدواء ونُقل إلى قائمة الفائض.','warn');
 }
-function delMed(id){
-  if(!confirm('حذف الدواء وسجلّه نهائياً؟')) return;
+async function delMed(id){
+  const m = S.meds.find(x=>x.id===id);
+  if(!await uiConfirm('حذف «'+(m?m.name:'')+'» وسجلّ جرعاته نهائياً؟\nلا يمكن التراجع عن هذه الخطوة.','حذف نهائي',true)) return;
   S.meds = S.meds.filter(m=>m.id!==id);
   S.logs = S.logs.filter(l=>l.medId!==id);
   persist(); renderMeds(); renderHome();
@@ -1459,8 +1562,10 @@ function renderAll(){ renderHome(); renderMeds(); }
 function renderHome(){
   if(!U||U.role!=='patient') return;
   document.getElementById('greeting').textContent = 'أهلاً بك، '+U.name.split(' ')[0];
+  const now = new Date();
   document.getElementById('hijri-date').textContent =
-    new Date().toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    now.toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) +
+    ' · ' + now.toLocaleDateString('ar-SA-u-ca-gregory',{year:'numeric',month:'long',day:'numeric'});
   const a30 = adherence(30), doses = todayDoses();
   document.getElementById('home-adherence').textContent = a30.sched? a30.pct+'%' : '—';
   document.getElementById('kpi-today').textContent = doses.filter(d=>d.taken).length+'/'+doses.length;
@@ -1482,8 +1587,9 @@ function renderHome(){
   const tl = document.getElementById('today-timeline');
   document.getElementById('home-empty').classList.toggle('hidden', doses.length>0);
   tl.innerHTML = doses.map(d=>{
-    const st = d.taken?'done':d.late?'late':d.due?'due':'';
+    const st = d.taken?'done':d.skipped?'skipped':d.late?'late':d.due?'due':'';
     const stat = d.taken? `<span class="badge b-ok"><i class="fas fa-check"></i> مأخوذة ${d.log?new Date(d.log.at).toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'}):''}</span>`
+      : d.skipped? '<span class="badge b-warn"><i class="fas fa-forward"></i> تم تخطّيها</span>'
       : d.late? '<span class="badge b-danger"><i class="fas fa-triangle-exclamation"></i> متأخرة</span>'
       : d.due? '<span class="badge b-teal"><i class="fas fa-bell"></i> حان وقتها</span>'
       : '<span class="badge b-info">قادمة</span>';
@@ -1493,7 +1599,7 @@ function renderHome(){
           <div class="dose-name">${esc(d.name)}</div>
           <div class="muted small">${esc(d.strength||'')}</div></div>
         <div>${stat}</div></div>
-      ${d.taken?'':`<div class="dose-actions no-print">
+      ${(d.taken||d.skipped)?'':`<div class="dose-actions no-print">
         <button class="btn btn-primary" onclick="takeDose('${d.doseId}')"><i class="fas fa-check"></i> تم أخذ الجرعة</button>
         <button class="btn btn-ghost btn-sm" onclick="skipDose('${d.doseId}')">تخطّي</button>
         <button class="btn btn-ghost btn-sm" onclick="go('screen-advisor')">سؤال عن الدواء</button></div>`}
@@ -1589,6 +1695,7 @@ function exportReport(){
   const consults = S.events.filter(e=>e.type==='consult');
   const escs = S.events.filter(e=>e.type==='escalation');
   const w = window.open('','','width=900,height=650');
+  if(!w){ toast('منع المتصفح فتح نافذة التقرير. اسمح بالنوافذ المنبثقة لهذا الموقع ثم أعد المحاولة.','warn',8000); return; }
   w.document.write(`<html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>تقرير الالتزام الدوائي — ${esc(U.name)}</title>
   <style>
     body{font-family:"Segoe UI",Tahoma,Arial;direction:rtl;padding:28px;color:#14293a}
@@ -1751,6 +1858,7 @@ function openDonate(medId){
       <label><input type="checkbox" id="ck2" style="width:auto"> تاريخ الصلاحية يتجاوز ٦ أشهر</label>
       <label><input type="checkbox" id="ck3" style="width:auto"> حُفظت في ظروف مناسبة ولا تحتاج تبريداً</label>
     </div>
+    <p class="field-err" id="donate-warn" role="alert"></p>
     <div class="inline">
       <button class="btn btn-primary" onclick="confirmDonate('${m.id}')"><i class="fas fa-heart"></i> تأكيد التبرع</button>
       <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
@@ -1758,10 +1866,48 @@ function openDonate(medId){
   </div></div>`;
 }
 function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+/* بدائل داخل الواجهة عن نوافذ المتصفح المعيارية (confirm / prompt) */
+function uiConfirm(msg, okText='تأكيد', danger=false){
+  return new Promise(res=>{
+    document.getElementById('modal-root').innerHTML = `
+      <div class="overlay"><div class="modal" role="dialog" aria-modal="true" style="max-width:460px">
+        <p style="font-size:1.05rem;margin:0 0 20px;white-space:pre-line">${esc(msg)}</p>
+        <div class="inline">
+          <button class="btn ${danger?'btn-danger':'btn-primary'}" id="mc-ok">${esc(okText)}</button>
+          <button class="btn btn-ghost" id="mc-no">إلغاء</button>
+        </div></div></div>`;
+    const done = v => { closeModal(); res(v); };
+    document.getElementById('mc-ok').onclick = ()=>done(true);
+    document.getElementById('mc-no').onclick = ()=>done(false);
+    document.getElementById('mc-ok').focus();
+  });
+}
+function uiPrompt(title, label, def=''){
+  return new Promise(res=>{
+    document.getElementById('modal-root').innerHTML = `
+      <div class="overlay"><div class="modal" role="dialog" aria-modal="true" style="max-width:460px">
+        <h3 style="margin-top:0">${esc(title)}</h3>
+        <div class="field"><label for="mp-val">${esc(label)}</label>
+          <input type="number" id="mp-val" min="1" max="2000" value="${esc(def)}"></div>
+        <div class="inline">
+          <button class="btn btn-primary" id="mp-ok">حفظ</button>
+          <button class="btn btn-ghost" id="mp-no">إلغاء</button>
+        </div></div></div>`;
+    const inp = document.getElementById('mp-val');
+    const done = v => { closeModal(); res(v); };
+    document.getElementById('mp-ok').onclick = ()=>done(inp.value);
+    document.getElementById('mp-no').onclick = ()=>done(null);
+    inp.focus(); inp.select();
+    inp.onkeydown = e => { if(e.key==='Enter') done(inp.value); };
+  });
+}
 function confirmDonate(medId){
   const ok = ['ck1','ck2','ck3'].every(i=>document.getElementById(i).checked);
-  if(!ok)
-    return alert('لا يمكن قبول التبرع إلا بعد تأكيد الشروط الثلاثة — هذا شرط سلامة لا شكلي.');
+  if(!ok){
+    const w = document.getElementById('donate-warn');
+    if(w){ w.textContent = 'لا يُقبل التبرع إلا بعد تأكيد الشروط الثلاثة — هذا شرط سلامة لا إجراء شكلي.'; w.classList.add('show'); }
+    return;
+  }
   const m = S.meds.find(x=>x.id===medId);
   const c = CHARITIES.find(x=>x.id===document.getElementById('don-charity').value);
   const ref = 'DN-'+Math.floor(100000+Math.random()*899999);
@@ -1889,14 +2035,46 @@ function renderPartners(){
 /* ==========================================================================
    الإعدادات والبيانات
    ========================================================================== */
+function roleLabel(r){ return r==='patient'?'مريض / كبير سن' : r==='caregiver'?'مقدم رعاية' : 'جهة شريكة'; }
+function copyCode(){
+  const t = U.code;
+  if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>toast('نُسخ رمز الربط: '+t,'',3000));
+  else toast('رمز الربط: '+t,'',5000);
+}
+function saveProfile(){
+  showErr('prof-err','');
+  const name = document.getElementById('prof-name').value.trim();
+  const pin  = document.getElementById('prof-pin').value.trim();
+  const pin2 = document.getElementById('prof-pin2').value.trim();
+  if(name.length < 2) return showErr('prof-err','الرجاء كتابة الاسم كاملاً.');
+  if(pin || pin2){
+    if(!isPin(pin))   return showErr('prof-err','الرمز السري أربعة أرقام فقط.');
+    if(pin !== pin2)  return showErr('prof-err','الرمزان غير متطابقين.');
+  }
+  const users = DB.users(); const u = users.find(x=>x.id===U.id);
+  u.name = name; U.name = name;
+  const finish = ()=>{ DB.saveUsers(users); buildNav(); renderSettings();
+    document.getElementById('prof-pin').value=''; document.getElementById('prof-pin2').value='';
+    renderHome(); toast('حُفظت بيانات حسابك.','',3500); };
+  if(pin) hashPin(u.phone, pin).then(h=>{ u.pinHash = h; delete u.pin; U.pinHash = h; finish(); });
+  else finish();
+}
 function renderSettings(){
+  document.getElementById('prof-name').value = U.name;
+  document.getElementById('prof-phone').value = U.phone;
   document.getElementById('account-box').innerHTML = `
     <div class="table-wrap"><table><tbody>
-      <tr><th style="width:170px">الاسم</th><td>${esc(U.name)}</td></tr>
-      <tr><th>رقم الجوال</th><td>${esc(U.phone)}</td></tr>
-      <tr><th>نوع الحساب</th><td>${U.role==='patient'?'مريض':U.role==='caregiver'?'مقدم رعاية':'جهة شريكة'}</td></tr>
-      <tr><th>رمز الربط</th><td><b style="font-size:1.2rem;color:var(--teal-dark)">${esc(U.code)}</b>
-        <div class="small muted">يشاركه المريض مع أسرته لإنشاء حساب مقدم رعاية مرتبط به.</div></td></tr>
+      <tr><th style="width:180px">نوع الحساب</th><td><span class="badge b-teal">${roleLabel(U.role)}</span></td></tr>
+      <tr><th>رمز الحساب</th><td><b style="font-size:1.15rem;color:var(--teal-dark)">${esc(U.code)}</b>
+        <button class="btn btn-sm btn-ghost no-print" style="margin-inline-start:8px" onclick="copyCode()">
+          <i class="fas fa-copy"></i> نسخ</button>
+        <div class="small muted">${U.role==='patient'
+          ? 'شاركه مع أحد أفراد أسرتك لينشئ حساب «مقدم رعاية» مرتبطاً بك.'
+          : 'رمز تعريفي لحسابك داخل المنصة.'}</div></td></tr>
+      ${U.role==='caregiver' ? `<tr><th>المريض المرتبط</th><td>${esc((DB.users().find(x=>x.code===U.link)||{}).name || '—')}
+        <span class="small muted">(${esc(U.link)})</span></td></tr>` : ''}
+      <tr><th>الرمز السري</th><td>محفوظ كبصمة مشفّرة (SHA-256) لا كنص صريح
+        <div class="small muted">وفي نسخة الإنتاج تُدار الهوية عبر خادم مع تحقق بخطوتين.</div></td></tr>
     </tbody></table></div>`;
   document.getElementById('set-repeat').value = S.settings.repeat;
   document.getElementById('set-esc').value = S.settings.esc;
@@ -1915,8 +2093,8 @@ function exportJSON(){
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = 'mydose-data.json'; a.click();
 }
-function wipeData(){
-  if(!confirm('سيُحذف كل ما سجّلته (أدوية، جرعات، استشارات). هل أنت متأكد؟')) return;
+async function wipeData(){
+  if(!await uiConfirm('سيُحذف كل ما سجّلته: الأدوية والجرعات والاستشارات.\nهل أنت متأكد؟','حذف بياناتي',true)) return;
   S = {meds:[],logs:[],events:[],alerts:{},streak:0,lastStreak:'',settings:S.settings};
   persist(); renderAll(); toast('حُذفت البيانات.','warn');
 }
@@ -1967,7 +2145,7 @@ function seedDemo(silent){
   fontStep = parseInt(localStorage.getItem('md_font')||'0');
   document.documentElement.style.fontSize = [16,18,20][fontStep]+'px';
   fillDrugList(); showTimeFields(0);
-  seedAccounts();
+  seedAccounts();                       // تهيئة حسابات العرض (غير متزامنة، لا تُعطّل الواجهة)
 
   const sid = localStorage.getItem('md_session');
   const u = sid? DB.users().find(x=>x.id===sid) : null;
