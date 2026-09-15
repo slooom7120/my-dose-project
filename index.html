@@ -268,9 +268,14 @@ footer.site a{color:#8fe3dc}
         <input type="password" id="log-pin" inputmode="numeric" maxlength="4" placeholder="••••" required>
       </div>
       <button class="btn btn-primary btn-block" type="submit"><i class="fas fa-right-to-bracket"></i> دخول</button>
-      <p class="hint center" style="margin-top:14px">
-        أول مرة هنا؟ <a href="#" onclick="loadDemoAccount();return false;">جرّب حساباً تجريبياً جاهزاً ببيانات ٣٠ يوماً</a>
-      </p>
+      <div class="hint" style="margin-top:16px;border:1px dashed var(--border);border-radius:11px;padding:12px">
+        <b>حسابات العرض الجاهزة — الرمز السري <span style="color:var(--teal-dark)">1111</span>:</b>
+        <div class="chips" style="margin:9px 0 0">
+          <span class="chip" onclick="demoLogin('0500000000')"><i class="fas fa-user"></i> مريض · 0500000000</span>
+          <span class="chip" onclick="demoLogin('0500000001')"><i class="fas fa-user-nurse"></i> مقدم رعاية · 0500000001</span>
+          <span class="chip" onclick="demoLogin('0500000002')"><i class="fas fa-hand-holding-heart"></i> جمعية خيرية · 0500000002</span>
+        </div>
+      </div>
     </form>
 
     <!-- تسجيل -->
@@ -839,19 +844,26 @@ function doLogin(e){
   if(!user) return alert('رقم الجوال أو الرمز السري غير صحيح.');
   startSession(user);
 }
-function loadDemoAccount(){
-  let users = DB.users();
-  let u = users.find(x=>x.phone==='0500000000');
-  if(!u){
-    u = {id:'u_demo',name:'صالح الفرج',phone:'0500000000',pin:'1111',role:'patient',code:'MD-1000',link:''};
-    users.push(u);
-    const c = {id:'u_demo_care',name:'سارة (مقدمة رعاية)',phone:'0500000001',pin:'1111',role:'caregiver',code:'MD-2000',link:'MD-1000'};
-    users.push(c); DB.saveUsers(users);
-  }
-  startSession(u);
-  if(!S.meds.length) seedDemo(true);
-  toast('دخلت بحساب تجريبي — الجوال 0500000000 والرمز 1111. حساب مقدم الرعاية: 0500000001','info');
+/* حسابات العرض الثلاثة: تُهيَّأ تلقائياً في أي متصفح يفتح المنصة */
+const DEMO_USERS = [
+  {id:'u_demo',      name:'صالح الفرج',        phone:'0500000000', pin:'1111', role:'patient',   code:'MD-1000', link:''},
+  {id:'u_demo_care', name:'سارة العتيبي',      phone:'0500000001', pin:'1111', role:'caregiver', code:'MD-2000', link:'MD-1000'},
+  {id:'u_demo_ngo',  name:'جمعية إرث للدواء',  phone:'0500000002', pin:'1111', role:'partner',   code:'MD-3000', link:''}
+];
+function seedAccounts(){
+  const users = DB.users(); let added = false;
+  DEMO_USERS.forEach(d=>{ if(!users.some(u=>u.phone===d.phone)){ users.push({...d}); added = true; } });
+  if(added) DB.saveUsers(users);
+  const p = DB.users().find(u=>u.id==='u_demo');
+  if(p){ const pd = DB.data(p.id);
+    if(!pd.meds.length){ const su=U, ss=S; U=p; S=pd; seedDemo(true); U=su; S=ss; } }
 }
+function demoLogin(phone){
+  seedAccounts();
+  const u = DB.users().find(x=>x.phone===phone);
+  if(u) startSession(u);
+}
+function loadDemoAccount(){ demoLogin('0500000000'); }
 function startSession(user){
   U = user; S = DB.data(user.id);
   localStorage.setItem('md_session',user.id);
@@ -881,15 +893,20 @@ const NAV = {
 function buildNav(){
   document.getElementById('nav-links').innerHTML = NAV[U.role].map(([id,ic,lb])=>
     `<button class="nav-btn" data-s="${id}" onclick="go('${id}')"><i class="fas ${ic}"></i><span>${lb}</span></button>`).join('');
-  const extra = [
-    ['screen-log','fa-clock-rotate-left','السجل'],
-    ['screen-donate','fa-hand-holding-medical','فائض الأدوية'],
-    ['screen-partners','fa-chart-pie','لوحة الشركاء'],
-    ['screen-adherence','fa-chart-line','لوحة المتابعة'],
-    ['screen-settings','fa-gear','الإعدادات'],
-    ['screen-about','fa-circle-info','عن المنصة'],
-    ['screen-contact','fa-envelope','تواصل معنا']
-  ].filter(x=>!NAV[U.role].some(n=>n[0]===x[0]));
+  const EXTRA = {
+    patient:[['screen-log','fa-clock-rotate-left','السجل'],
+             ['screen-donate','fa-hand-holding-medical','فائض الأدوية'],
+             ['screen-partners','fa-chart-pie','لوحة الشركاء'],
+             ['screen-settings','fa-gear','الإعدادات'],
+             ['screen-about','fa-circle-info','عن المنصة'],
+             ['screen-contact','fa-envelope','تواصل معنا']],
+    caregiver:[['screen-settings','fa-gear','الإعدادات'],
+               ['screen-contact','fa-envelope','تواصل معنا']],
+    partner:[['screen-donate','fa-hand-holding-medical','الأدوية المتبرَّع بها'],
+             ['screen-settings','fa-gear','الإعدادات'],
+             ['screen-contact','fa-envelope','تواصل معنا']]
+  };
+  const extra = EXTRA[U.role].filter(x=>!NAV[U.role].some(n=>n[0]===x[0]));
   document.getElementById('more-menu').innerHTML =
     extra.map(([id,ic,lb])=>`<button onclick="go('${id}');toggleMenu()"><i class="fas ${ic}"></i> ${lb}</button>`).join('')
     + `<div class="sep"></div><button onclick="logout()"><i class="fas fa-right-from-bracket"></i> تسجيل الخروج (${esc(U.name)})</button>`;
@@ -1896,6 +1913,7 @@ function seedDemo(silent){
   fontStep = parseInt(localStorage.getItem('md_font')||'0');
   document.documentElement.style.fontSize = [16,18,20][fontStep]+'px';
   fillDrugList(); showTimeFields(0);
+  seedAccounts();
 
   const sid = localStorage.getItem('md_session');
   const u = sid? DB.users().find(x=>x.id===sid) : null;
