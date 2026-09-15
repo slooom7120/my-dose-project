@@ -1564,7 +1564,7 @@ function renderHome(){
   document.getElementById('greeting').textContent = 'أهلاً بك، '+U.name.split(' ')[0];
   const now = new Date();
   document.getElementById('hijri-date').textContent =
-    now.toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) +
+    now.toLocaleDateString('ar-SA-u-ca-islamic-umalqura',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) +
     ' · ' + now.toLocaleDateString('ar-SA-u-ca-gregory',{year:'numeric',month:'long',day:'numeric'});
   const a30 = adherence(30), doses = todayDoses();
   document.getElementById('home-adherence').textContent = a30.sched? a30.pct+'%' : '—';
