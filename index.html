@@ -1695,6 +1695,8 @@ function renderDonatePartner(){
     `<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
       <b>${c.region}</b> <span class="badge b-teal">${c.licence}</span>
       <div class="muted small">الأشد احتياجاً: ${c.needs}</div></div>`).join('');
+  const dl = document.getElementById('donation-log');
+  if(dl.previousElementSibling) dl.previousElementSibling.textContent = 'ملخص التبرعات الواردة';
   document.getElementById('donation-log').innerHTML = `<div class="grid g3">
     <div class="kpi"><div class="v">${inc.length}</div><div class="l">عملية تبرع</div></div>
     <div class="kpi"><div class="v">${pills}</div><div class="l">حبة معاد توجيهها</div></div>
@@ -1705,6 +1707,11 @@ function renderDonate(){
   if(U.role === 'partner') return renderDonatePartner();
   document.querySelector('#screen-donate .section-title').innerHTML =
     '<i class="fas fa-hand-holding-medical"></i> فائض الأدوية والتبرع الآمن';
+  const h4s = document.querySelectorAll('#screen-donate .grid.g2 .card h4');
+  if(h4s[0]) h4s[0].textContent = 'الأدوية المرشّحة لديك';
+  if(h4s[1]) h4s[1].textContent = 'الجمعيات المستقبِلة';
+  const dlog = document.getElementById('donation-log');
+  if(dlog.previousElementSibling) dlog.previousElementSibling.textContent = 'سجل تبرعاتي';
   const list = surplusList();
   document.getElementById('surplus-list').innerHTML = list.length? list.map(m=>{
     const d = m.drugId? drugById(m.drugId):null;
