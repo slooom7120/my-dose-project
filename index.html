@@ -865,6 +865,7 @@ function demoLogin(phone){
 }
 function loadDemoAccount(){ demoLogin('0500000000'); }
 function startSession(user){
+  clearViews();
   U = user; S = DB.data(user.id);
   localStorage.setItem('md_session',user.id);
   document.getElementById('screen-auth').classList.add('hidden');
@@ -873,8 +874,19 @@ function startSession(user){
   if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
   go(user.role==='caregiver'?'screen-caregiver':user.role==='partner'?'screen-partners':'screen-home');
 }
+/* تفريغ كل ما رسمه المستخدم السابق حتى لا تبقى بياناته في الصفحة بعد الخروج */
+function clearViews(){
+  ['today-timeline','home-alerts','meds-list','log-body','chat-box','chat-chips','caregiver-body',
+   'surplus-list','donation-log','charity-list','interaction-box','partner-kpis','outbreak-box',
+   'chart-days','chart-meds','chart-times','chart-regions','chart-classes','dss-level1',
+   'account-box','scan-result','drug-info','add-interaction','toasts']
+   .forEach(id=>{ const el = document.getElementById(id); if(el) el.innerHTML = ''; });
+  ['home-adherence','kpi-today','kpi-streak','kpi-missed','kpi-low','ad-30','ad-7','ad-first','ad-esc']
+   .forEach(id=>{ const el = document.getElementById(id); if(el) el.textContent = '—'; });
+}
 function logout(){
   localStorage.removeItem('md_session'); U=null; S=null;
+  clearViews();
   document.getElementById('app').classList.add('hidden');
   document.getElementById('screen-auth').classList.remove('hidden');
 }
@@ -1657,7 +1669,42 @@ const CHARITIES = [
 function surplusList(){
   return S.meds.filter(m=>(!m.active || m.stopped) && m.remaining>0);
 }
+function incomingDonations(){
+  const out = [];
+  DB.users().filter(u=>u.role==='patient').forEach(u=>{
+    DB.data(u.id).events.filter(e=>e.type==='donation')
+      .forEach(e=>out.push({...e, from: u.code || '—'}));
+  });
+  return out.sort((a,b)=>b.at.localeCompare(a.at));
+}
+function renderDonatePartner(){
+  const inc = incomingDonations();
+  const pills = inc.reduce((a,b)=>a+(b.qty||0),0);
+  document.querySelector('#screen-donate .section-title').innerHTML =
+    '<i class="fas fa-hand-holding-medical"></i> التبرعات الواردة إلى الجهة';
+  const cards = document.querySelectorAll('#screen-donate .grid.g2 .card h4');
+  if(cards[0]) cards[0].textContent = 'الأدوية الواردة';
+  if(cards[1]) cards[1].textContent = 'الاحتياج المعلن حسب المنطقة';
+  document.getElementById('surplus-list').innerHTML = inc.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>الدواء</th><th>الكمية</th><th>رمز المتبرع</th><th>رقم التتبع</th></tr></thead><tbody>
+      ${inc.map(d=>`<tr><td>${esc(d.med)}</td><td>${d.qty} حبة</td>
+        <td class="small muted">${esc(d.from)}</td><td>${esc(d.ref)}</td></tr>`).join('')}
+      </tbody></table></div>`
+    : '<p class="muted center" style="padding:18px">لا توجد تبرعات واردة بعد.</p>';
+  document.getElementById('charity-list').innerHTML = CHARITIES.map(c=>
+    `<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
+      <b>${c.region}</b> <span class="badge b-teal">${c.licence}</span>
+      <div class="muted small">الأشد احتياجاً: ${c.needs}</div></div>`).join('');
+  document.getElementById('donation-log').innerHTML = `<div class="grid g3">
+    <div class="kpi"><div class="v">${inc.length}</div><div class="l">عملية تبرع</div></div>
+    <div class="kpi"><div class="v">${pills}</div><div class="l">حبة معاد توجيهها</div></div>
+    <div class="kpi"><div class="v">${new Set(inc.map(d=>d.med)).size}</div><div class="l">صنف دوائي</div></div>
+  </div>`;
+}
 function renderDonate(){
+  if(U.role === 'partner') return renderDonatePartner();
+  document.querySelector('#screen-donate .section-title').innerHTML =
+    '<i class="fas fa-hand-holding-medical"></i> فائض الأدوية والتبرع الآمن';
   const list = surplusList();
   document.getElementById('surplus-list').innerHTML = list.length? list.map(m=>{
     const d = m.drugId? drugById(m.drugId):null;
