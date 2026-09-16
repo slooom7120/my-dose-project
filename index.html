@@ -36,6 +36,26 @@
   --shadow:0 4px 14px rgba(11,47,74,.07);
   --radius:14px;
 }
+/* ===== ثيم حسب الشخصية (NFR-08): لكل فئة نظام ألوان وكثافة وحجم خط ===== */
+body.role-patient{ --radius:18px; font-size:1.06rem }
+body.role-patient .btn{padding:17px 24px;font-size:1.12rem;border-radius:14px}
+body.role-patient .kpi .v{font-size:2.3rem}
+body.role-patient .dose-time{font-size:1.75rem}
+body.role-patient .nav-btn{font-size:1.02rem;padding:11px 12px}
+body.role-patient.dark{   /* كبار السن ليلاً: تباين أعلى ووهج أقل */
+  --bg:#06121a; --surface:#12222d; --surface-2:#18303f;
+  --text:#f4fafd; --text-2:#bdd0dc; --border:#37556550; --border:#375565;
+  --teal:#3ad6c9; --ok:#34d27b; --danger:#ff6b6b;
+}
+body.role-caregiver{ --radius:12px }
+body.role-caregiver .card{padding:16px}
+body.role-caregiver.dark{ --bg:#0a1620; --surface:#122330; --surface-2:#17303f; --text:#e4eef5; --text-2:#9fb5c4 }
+body.role-partner{ --radius:10px; font-size:.97rem }
+body.role-partner .card{padding:16px}
+body.role-partner .section-title{font-size:1.18rem}
+body.role-partner.dark{   /* قراءة بيانات طويلة: خلفية أهدأ وتباين نص مريح */
+  --bg:#0c1418; --surface:#141f26; --surface-2:#1b2932; --text:#dce7ee; --text-2:#93a7b4; --border:#273a45;
+}
 body.dark{
   --navy-900:#061c2c; --navy:#0d8eae00; --navy:#12557f; --navy-600:#2b7aa8;
   --teal:#2cc2b8; --teal-dark:#1f9b93; --teal-soft:#0f3a3a;
@@ -68,6 +88,9 @@ a{color:var(--teal-dark)}
 .navbar{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:900;box-shadow:var(--shadow)}
 .nav-wrap{max-width:1040px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:8px;font-size:1.45rem;font-weight:800;color:var(--navy);text-decoration:none;white-space:nowrap}
+/* عزل النصوص اللاتينية داخل واجهة عربية حتى لا يقلبها محرك الاتجاه (myDose ← Dose my) */
+.latin{direction:ltr;unicode-bidi:isolate}
+bdi{unicode-bidi:isolate}
 body.dark .logo{color:var(--teal)}
 .logo .brand-en{color:var(--teal)}
 .nav-links{display:flex;flex-wrap:wrap;align-items:center;gap:2px;flex:1}
@@ -268,7 +291,7 @@ footer.site a{color:#8fe3dc}
 <!-- ============================ شاشة الدخول (FR-01) ============================ -->
 <div id="screen-auth" class="auth">
   <div class="auth-box">
-    <div class="auth-logo">my<span style="color:var(--teal)">Dose</span></div>
+    <div class="auth-logo"><bdi dir="ltr" class="latin">my<span style="color:var(--teal)">Dose</span></bdi></div>
     <p class="center muted" style="margin:0">جرعتي — منصة الالتزام الدوائي</p>
 
     <div class="tabs">
@@ -345,7 +368,7 @@ footer.site a{color:#8fe3dc}
 <nav class="navbar">
   <div class="nav-wrap">
     <a href="#" class="logo" onclick="go('screen-home');return false;">
-      <i class="fas fa-capsules"></i> my<span class="brand-en">Dose</span>
+      <i class="fas fa-capsules"></i><bdi dir="ltr" class="latin">my<span class="brand-en">Dose</span></bdi>
     </a>
 
     <div class="nav-links" id="nav-links"></div>
@@ -399,6 +422,7 @@ footer.site a{color:#8fe3dc}
   <main id="screen-meds" class="screen">
     <h3 class="section-title"><i class="fas fa-pills"></i> خزانة الأدوية</h3>
     <div id="meds-context"></div>
+    <div id="meds-pending"></div>
     <div class="inline no-print" style="margin-bottom:16px">
       <button class="btn btn-navy" onclick="exportReport()"><i class="fas fa-file-medical"></i> تصدير تقرير الطبيب</button>
       <button class="btn btn-ghost" onclick="go('screen-add')"><i class="fas fa-plus"></i> إضافة دواء</button>
@@ -599,6 +623,11 @@ footer.site a{color:#8fe3dc}
       <h4>بيانات الحساب</h4>
       <div id="account-box"></div>
     </div>
+    <div class="card" id="mode-card">
+      <h4>نمط إدارة الحساب (FR-11)</h4>
+      <p class="muted small">يحدد متى تحتاج إضافة دواء إلى موافقة مقدم الرعاية. الأدوية منخفضة الخطورة تُضاف فوراً في الحالتين.</p>
+      <div id="mode-box"></div>
+    </div>
     <div class="card">
       <h4>التنبيهات المتصاعدة (FR-04)</h4>
       <p class="muted small">يبدأ النظام بتنبيه لطيف، ثم يكرّره، ثم يُشعر مقدم الرعاية عند استمرار التجاهل.</p>
@@ -680,12 +709,16 @@ footer.site a{color:#8fe3dc}
 </div><!-- /container -->
 
 <footer class="site">
-  <p style="margin:0 0 6px">© 2026 جرعتي — myDose · نموذج أولي لمشروع تحليل وتصميم منصة رقمية</p>
+  <p style="margin:0 0 6px">© 2026 جرعتي — <bdi dir="ltr">myDose</bdi> · نموذج أولي لمشروع تحليل وتصميم منصة رقمية</p>
   <p class="small" style="margin:0;opacity:.8">المحتوى الدوائي لأغراض العرض فقط ولا يُغني عن استشارة مختص · في حالات الطوارئ اتصل بـ 997</p>
 </footer>
 
 </div><!-- /app -->
 
+<div id="net-banner" class="hidden" style="position:fixed;inset-inline:0;bottom:0;z-index:1800;
+  background:var(--warn);color:#fff;text-align:center;padding:10px;font-weight:700">
+  <i class="fas fa-wifi"></i> لا يوجد اتصال — يستمر تسجيل الجرعات على جهازك وتُزامن تلقائياً عند عودة الشبكة.
+</div>
 <div class="toast-box" id="toasts" role="status" aria-live="polite"></div>
 <div id="modal-root"></div>
 
@@ -796,6 +829,19 @@ const INTERACTIONS = [
  {a:"ibuprofen",b:"diclofenac",sev:"high",t:"كلاهما من نفس العائلة؛ جمعهما يضاعف ضرر المعدة والكلى دون فائدة إضافية."}
 ];
 
+/* فئات دوائية عالية الخطورة: الخطأ فيها لا يُصحَّح لاحقاً (نزيف، هبوط سكر، اعتماد) */
+const HIGH_RISK_CLASSES = ['مميّع دم','مضاد تجمّع صفائح','هرمون خافض سكر','مسكّن أفيوني ضعيف','كورتيزون'];
+/* تقييم خطورة إضافة دواء بعينه إلى ملف فيه أدوية قائمة */
+function riskOf(drugId, otherIds){
+  const d = drugId ? drugById(drugId) : null;
+  const reasons = [];
+  if(d && HIGH_RISK_CLASSES.includes(d.cls)) reasons.push('ينتمي لفئة عالية الخطورة: ' + d.cls);
+  if(d) interactionsWith(d.id, otherIds).forEach(c=>{
+    if(c.sev === 'high') reasons.push('تعارض عالي مع ' + c.other);
+  });
+  return { level: reasons.length ? 'high' : 'normal', reasons };
+}
+
 /* علامات الخطر التي تُلزم النظام بالإحالة الفورية للطبيب البشري */
 const RED_FLAGS = ["الم في الصدر","الم صدر","ضيق تنفس","ضيق في التنفس","صعوبه تنفس","نزيف","اغماء","فقدان وعي",
  "تورم الوجه","تورم اللسان","تورم الشفاه","طفح شديد","حساسيه شديده","تشنج","شلل","تلعثم","سكته","جلطه",
@@ -820,7 +866,7 @@ const DB = {
   data(uid){
     const d = JSON.parse(localStorage.getItem(this.key(uid))||'null');
     return d || {meds:[],logs:[],events:[],alerts:{},streak:0,lastStreak:'',
-                 settings:{repeat:30,esc:60,voice:true,demo:false}};
+                 settings:{repeat:30,esc:60,voice:true,demo:false,mode:'independent'}};
   },
   save(uid,d){ localStorage.setItem(this.key(uid),JSON.stringify(d)); }
 };
@@ -965,6 +1011,8 @@ function startSession(user){
   }
   DATA_ID = PATIENT ? PATIENT.id : user.id;   // مقدم الرعاية يفتح ملف مريضه مباشرة
   S = DB.data(DATA_ID);
+  document.body.classList.remove('role-patient','role-caregiver','role-partner');
+  document.body.classList.add('role-' + user.role);   // ثيم الشخصية
   localStorage.setItem('md_session',user.id);
   document.getElementById('screen-auth').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
@@ -984,6 +1032,7 @@ function clearViews(){
 }
 function logout(){
   localStorage.removeItem('md_session'); U=null; S=null; DATA_ID=null; PATIENT=null;
+  document.body.classList.remove('role-patient','role-caregiver','role-partner');
   clearViews();
   document.getElementById('app').classList.add('hidden');
   document.getElementById('screen-auth').classList.remove('hidden');
@@ -1129,10 +1178,30 @@ function handleVoiceCommand(t){
 /* ==========================================================================
    محرك الجدولة (2.0) ومحرك الالتزام (3.0)
    ========================================================================== */
+function hasCaregiver(){
+  const owner = DB.users().find(u => u.id === DATA_ID);
+  return owner ? DB.users().some(u => u.role === 'caregiver' && u.link === owner.code) : false;
+}
+function pendingMeds(){ return S.meds.filter(m => m.status === 'pending'); }
+function approveMed(id, ok){
+  const m = S.meds.find(x => x.id === id); if(!m) return;
+  if(ok){ m.status = 'active'; m.start = todayISO();
+    S.events.unshift({type:'approval', at:new Date().toISOString(), name:m.name,
+      text:'اعتمد '+(U.name)+' دواء «'+m.name+'» وبدأت جدولته'});
+    toast('اعتُمد «'+esc(m.name)+'» وبدأت تنبيهاته.','',5000);
+  } else {
+    S.meds = S.meds.filter(x => x.id !== id);
+    S.events.unshift({type:'approval', at:new Date().toISOString(), name:m.name,
+      text:'رفض '+(U.name)+' إضافة دواء «'+m.name+'» — يُراجَع مع الطبيب قبل إعادة الإدخال'});
+    toast('رُفض «'+esc(m.name)+'» وأُزيل من الملف.','warn',6000);
+  }
+  persist(); renderMeds(); renderHome();
+  if(document.getElementById('screen-caregiver').classList.contains('active')) renderCaregiver();
+}
 function schedFor(dateISO){
   const out = [];
   S.meds.forEach(m=>{
-    if(!m.active || !m.times.length) return;
+    if(!m.active || m.status === 'pending' || !m.times.length) return;
     if(m.start > dateISO) return;
     if(m.stopped && m.stopped <= dateISO) return;
     m.times.forEach((t,i)=> out.push({medId:m.id,name:m.name,strength:m.strength,time:t,idx:i,
@@ -1209,12 +1278,15 @@ function takeDose(doseId){
   const al = S.alerts[doseId]||{};
   S.logs.unshift({doseId, medId:d.medId, name:d.name, time:d.time, date:todayISO(),
                   at:new Date().toISOString(), escalated: !!al.esc,
-                  late: nowMin()>toMin(d.time)+GRACE, by: actor()});
+                  late: nowMin()>toMin(d.time)+GRACE, by: actor(),
+                  synced: navigator.onLine !== false});   // تُسجَّل محلياً ثم تُزامن
   const m = S.meds.find(x=>x.id===d.medId);
   if(m && m.remaining>0){ m.remaining--; if(m.remaining<=3) toast(`مخزون «${esc(m.name)}» على وشك النفاد (${m.remaining} حبة).`,'warn'); }
   updateStreak();
   persist(); renderHome(); renderMeds();
-  toast('تم تسجيل الجرعة ✅','',3000);
+  toast(navigator.onLine === false
+    ? 'سُجّلت الجرعة على جهازك ✅ — ستُزامن تلقائياً عند عودة الاتصال.'
+    : 'تم تسجيل الجرعة ✅','',3500);
 }
 function skipDose(doseId){
   const d = todayDoses().find(x=>x.doseId===doseId); if(!d) return;
@@ -1223,6 +1295,17 @@ function skipDose(doseId){
   S.alerts[doseId] = {...(S.alerts[doseId]||{}), skipped:true};
   persist(); renderHome();
   toast('سُجّل التخطي، وسيظهر في تقرير الطبيب كجرعة غير مأخوذة.','warn');
+}
+/* مزامنة ما سُجّل أثناء انقطاع الشبكة (في الإنتاج: دفعة واحدة إلى الخادم) */
+function syncPending(){
+  if(!S) return;
+  const pend = S.logs.filter(l => l.synced === false);
+  if(!pend.length) return;
+  pend.forEach(l => { l.synced = true; l.syncedAt = new Date().toISOString(); });
+  S.events.unshift({type:'sync', at:new Date().toISOString(),
+    text:'زُومنت '+pend.length+' جرعة سُجّلت أثناء انقطاع الاتصال'});
+  persist(); renderLog();
+  toast('عاد الاتصال — زُومنت '+pend.length+' جرعة مسجّلة محلياً.','',5000);
 }
 function updateStreak(){
   const t = todayISO();
@@ -1278,7 +1361,7 @@ function alertTick(){
    ========================================================================== */
 function fillDrugList(){
   document.getElementById('drug-list').innerHTML =
-    DRUGS.map(d=>`<option value="${d.ar[0]}">${d.en} — ${d.cls}</option>`).join('');
+    DRUGS.map(d=>`<option value="${d.ar[0]}">${d.ar[0]} — ${d.cls}</option>`).join('');
 }
 function onDrugTyped(){
   const v = document.getElementById('med-name').value;
@@ -1286,7 +1369,7 @@ function onDrugTyped(){
   const d = findDrug(v)[0];
   if(!d){ box.innerHTML = v.length>2 ? '<span class="badge b-warn">غير موجود في قاعدة الأدوية المعتمدة — سيُسجَّل كاسم حر</span>' : '';
           document.getElementById('add-interaction').innerHTML=''; return; }
-  box.innerHTML = `<span class="badge b-teal"><i class="fas fa-circle-check"></i> ${esc(d.en)} · ${esc(d.cls)}</span>
+  box.innerHTML = `<span class="badge b-teal"><i class="fas fa-circle-check"></i> <bdi dir="ltr">${esc(d.en)}</bdi> · ${esc(d.cls)}</span>
     <div style="margin-top:6px">${esc(d.uses)}<br><b>الجرعة المعتادة:</b> ${esc(d.dose)}<br><b>مع الطعام:</b> ${esc(d.food)}</div>`;
   const st = document.getElementById('med-strength'); if(!st.value) st.value = d.dose.split('،')[0];
   const clash = interactionsWith(d.id, S.meds.map(m=>m.drugId).filter(Boolean));
@@ -1348,11 +1431,26 @@ function saveMed(e){
     Object.assign(m,{name, strength:document.getElementById('med-strength').value, total,
       remaining: Math.max(0,m.remaining+diff), times, drugId: drug?drug.id:null});
   }else{
+    /* الموافقة المبنية على المخاطر: لا نعطّل كل إضافة، بل ما يستحق التعطيل فقط */
+    const risk = riskOf(drug?drug.id:null, S.meds.filter(m=>m.active).map(m=>m.drugId).filter(Boolean));
+    const byCare = !!actor();
+    const supervised = (S.settings.mode === 'supervised') && !!hasCaregiver();
+    const needsApproval = !byCare && supervised && risk.level === 'high';
     S.meds.push({id:'m'+Date.now(), name, strength:document.getElementById('med-strength').value,
       total, remaining: total, times, drugId: drug?drug.id:null, active:true,
-      start: todayISO(), stopped:null, addedBy: actor()});
-    if(actor()) S.events.unshift({type:'med-added', at:new Date().toISOString(), name,
+      start: todayISO(), stopped:null, addedBy: actor(),
+      status: needsApproval ? 'pending' : 'active',
+      risk: risk.level, riskReasons: risk.reasons});
+    if(byCare) S.events.unshift({type:'med-added', at:new Date().toISOString(), name,
       text:'أضاف مقدم الرعاية '+actor()+' دواء «'+name+'» إلى ملفك'});
+    else if(needsApproval) S.events.unshift({type:'approval', at:new Date().toISOString(), name,
+      text:'دواء «'+name+'» بانتظار موافقة مقدم الرعاية — السبب: '+risk.reasons.join(' · ')});
+    else if(risk.level === 'high' && hasCaregiver()) S.events.unshift({type:'risk-notice', at:new Date().toISOString(), name,
+      text:'أُشعر مقدم الرعاية بإضافتك دواءً عالي الخطورة «'+name+'» — '+risk.reasons.join(' · ')});
+    if(needsApproval){
+      persist(); resetMedForm(); renderMeds(); renderHome(); go('screen-meds');
+      return toast('أُضيف «'+esc(name)+'» بانتظار موافقة مقدم الرعاية — لن تبدأ تنبيهاته قبلها.','warn',9000);
+    }
   }
   persist(); resetMedForm(); renderMeds(); renderHome();
   toast(id?'تم تحديث الدواء.':'تمت إضافة الدواء وجدولته.','',4000);
@@ -1518,7 +1616,7 @@ function advise(q){
   /* 4) أسئلة عن دواء واحد */
   if(found.length===1){
     const d = found[0];
-    const src = `قاعدة الأدوية المعتمدة — ${d.en} (${d.cls})`;
+    const src = `قاعدة الأدوية المعتمدة — \u2066${d.en}\u2069 (${d.cls})`;
     if(/عرض جانبي|اعراض جانبيه|اثار جانبيه|مضاعفات|يسبب|تاثير جانبي/.test(n))
       return {answered:true, referred:false, topic, src,
         text:`الأعراض الجانبية المعروفة لـ${d.ar[0]}:\n${d.side}\n\nتنبيه مهم: ${d.warn}`};
@@ -1647,7 +1745,19 @@ function renderMeds(){
     ? `<div class="alert info small"><i class="fas fa-user-nurse"></i> تعمل الآن داخل الملف الدوائي للمريض
        <b>${esc(PATIENT.name)}</b> — كل إضافة أو تعديل يُسجَّل باسمك ويظهر في سجله.</div>` : '';
   const box = document.getElementById('meds-list');
-  const list = S.meds.filter(m=>m.active);
+  const pend = pendingMeds();
+  const pb = document.getElementById('meds-pending');
+  if(pb) pb.innerHTML = pend.length ? pend.map(m=>`
+    <div class="alert warn">
+      <b><i class="fas fa-hourglass-half"></i> بانتظار الموافقة: ${esc(m.name)}</b>
+      <div class="small">${esc((m.riskReasons||[]).join(' · '))}</div>
+      <div class="inline no-print" style="margin-top:10px">
+        ${isCare ? `<button class="btn btn-sm btn-primary" onclick="approveMed('${m.id}',true)">اعتماد وبدء الجدولة</button>
+                    <button class="btn btn-sm btn-danger" onclick="approveMed('${m.id}',false)">رفض وإزالة</button>`
+                 : `<span class="small muted">أُرسل الطلب إلى مقدم الرعاية — لن تبدأ التنبيهات قبل اعتماده.</span>`}
+      </div>
+    </div>`).join('') : '';
+  const list = S.meds.filter(m=>m.active && m.status !== 'pending');
   document.getElementById('meds-empty').classList.toggle('hidden', list.length>0);
   box.innerHTML = list.map(m=>{
     const pct = m.total? Math.round(m.remaining/m.total*100):0;
@@ -1657,6 +1767,8 @@ function renderMeds(){
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <b style="font-size:1.15rem">${esc(m.name)}</b>
           ${d?`<span class="badge b-teal">${esc(d.cls)}</span>`:'<span class="badge b-warn">اسم حر</span>'}
+          ${m.risk==='high'?'<span class="badge b-danger" title="'+esc((m.riskReasons||[]).join(' · '))+'">عالي الخطورة</span>':''}
+          ${m.addedBy?`<span class="badge b-info">أضافه ${esc(m.addedBy)}</span>`:''}
         </div>
         <div class="muted small">${esc(m.strength||'')} · ${m.times.length? 'المواعيد: '+m.times.join(' · ') : 'عند الحاجة'}</div>
         <div class="muted small" style="margin:6px 0 4px">${m.remaining} / ${m.total} حبة متبقية</div>
@@ -1699,7 +1811,7 @@ function renderLog(){
   let rows = [];
   S.logs.forEach(l=> rows.push({t:'taken',at:l.at,
     title:'<span class="badge b-ok">جرعة مؤكدة</span>',
-    d:`${esc(l.name)} — الموعد ${l.time}${l.late?' <span class="badge b-warn">متأخرة</span>':''}${l.escalated?' <span class="badge b-danger">بعد تصعيد</span>':''}${l.by?' <span class="badge b-info">سجّلها '+esc(l.by)+'</span>':''}`}));
+    d:`${l.synced===false?'<span class="badge b-warn">بانتظار المزامنة</span> ':''}${esc(l.name)} — الموعد ${l.time}${l.late?' <span class="badge b-warn">متأخرة</span>':''}${l.escalated?' <span class="badge b-danger">بعد تصعيد</span>':''}${l.by?' <span class="badge b-info">سجّلها '+esc(l.by)+'</span>':''}`}));
   const set = takenSet();
   for(let i=0;i<7;i++){ const day=daysAgoISO(i);
     schedFor(day).forEach(d=>{
@@ -1716,6 +1828,11 @@ function renderLog(){
     if(e.type==='skip') rows.push({t:'missed',at:e.at,title:'<span class="badge b-warn">تخطّي</span>',d:esc(e.name)+' — '+esc(e.text)});
     if(e.type==='nudge') rows.push({t:'escalation',at:e.at,title:'<span class="badge b-info">تنبيه من مقدم الرعاية</span>',d:esc(e.text)});
     if(e.type==='med-added') rows.push({t:'all',at:e.at,title:'<span class="badge b-teal">إضافة دواء</span>',d:esc(e.text)});
+    if(e.type==='approval') rows.push({t:'all',at:e.at,title:'<span class="badge b-warn">موافقة</span>',d:esc(e.text)});
+    if(e.type==='risk-notice') rows.push({t:'all',at:e.at,title:'<span class="badge b-danger">تنبيه خطورة</span>',d:esc(e.text)});
+    if(e.type==='mode') rows.push({t:'all',at:e.at,title:'<span class="badge b-info">إعدادات</span>',d:esc(e.text)});
+    if(e.type==='sync') rows.push({t:'all',at:e.at,title:'<span class="badge b-teal">مزامنة</span>',d:esc(e.text)});
+    if(e.type==='donation-status') rows.push({t:'donation',at:e.at,title:'<span class="badge b-teal">تتبع التبرع</span>',d:esc(e.text)});
   });
   if(f!=='all') rows = rows.filter(r=>r.t===f);
   rows.sort((a,b)=> b.at.localeCompare(a.at));
@@ -1816,13 +1933,41 @@ const CHARITIES = [
 function surplusList(){
   return S.meds.filter(m=>(!m.active || m.stopped) && m.remaining>0);
 }
+const DON_FLOW = { submitted:'مسجّل', received:'استُلم في المستودع', dispatched:'وُجّه لمستفيد' };
 function incomingDonations(){
   const out = [];
   DB.users().filter(u=>u.role==='patient').forEach(u=>{
     DB.data(u.id).events.filter(e=>e.type==='donation')
-      .forEach(e=>out.push({...e, from: u.code || '—'}));
+      .forEach(e=>out.push({...e, from: u.code || '—', ownerId: u.id}));
   });
   return out.sort((a,b)=>b.at.localeCompare(a.at));
+}
+/* تحديث حالة التبرع من جانب الجهة المستقبِلة — يكتب في ملف المتبرع ليغلق الدائرة */
+function advanceDonation(ownerId, ref){
+  const d = DB.data(ownerId);
+  const ev = d.events.find(e => e.type === 'donation' && e.ref === ref);
+  if(!ev) return;
+  const next = ev.status === 'submitted' ? 'received' : ev.status === 'received' ? 'dispatched' : null;
+  if(!next) return;
+  ev.status = next; ev.statusAt = new Date().toISOString();
+  ev['at_' + next] = ev.statusAt;
+  d.events.unshift({type:'donation-status', at:ev.statusAt, ref,
+    text:'تبرعك '+ref+' — الحالة الآن: '+DON_FLOW[next]});
+  DB.save(ownerId, d);
+  renderDonate(); renderPartners();
+  toast('حُدّثت حالة '+ref+' إلى «'+DON_FLOW[next]+'».','',4000);
+}
+/* KPI: كفاءة دورة التبرع — نسبة الإغلاق ومتوسط زمنه */
+function donationCycleKPI(){
+  const all = incomingDonations();
+  const closed = all.filter(d => d.status === 'dispatched');
+  const days = closed.map(d => (new Date(d.at_dispatched || d.statusAt) - new Date(d.at)) / 86400000)
+                     .filter(n => isFinite(n) && n >= 0);
+  return { total: all.length, closed: closed.length,
+           rate: all.length ? Math.round(closed.length / all.length * 100) : 0,
+           avgDays: days.length ? (days.reduce((a,b)=>a+b,0) / days.length).toFixed(1) : '—',
+           pills: all.reduce((a,b)=>a+(b.qty||0),0),
+           pillsClosed: closed.reduce((a,b)=>a+(b.qty||0),0) };
 }
 function renderDonatePartner(){
   const inc = incomingDonations();
@@ -1832,10 +1977,18 @@ function renderDonatePartner(){
   const cards = document.querySelectorAll('#screen-donate .grid.g2 .card h4');
   if(cards[0]) cards[0].textContent = 'الأدوية الواردة';
   if(cards[1]) cards[1].textContent = 'الاحتياج المعلن حسب المنطقة';
+  const badge = st => st==='dispatched' ? '<span class="badge b-ok">وُجّه لمستفيد</span>'
+                    : st==='received'  ? '<span class="badge b-info">استُلم</span>'
+                                       : '<span class="badge b-warn">مسجّل</span>';
   document.getElementById('surplus-list').innerHTML = inc.length ? `<div class="table-wrap"><table>
-      <thead><tr><th>الدواء</th><th>الكمية</th><th>رمز المتبرع</th><th>رقم التتبع</th></tr></thead><tbody>
+      <thead><tr><th>الدواء</th><th>الكمية</th><th>رمز المتبرع</th><th>رقم التتبع</th><th>الحالة</th><th class="no-print">إجراء</th></tr></thead><tbody>
       ${inc.map(d=>`<tr><td>${esc(d.med)}</td><td>${d.qty} حبة</td>
-        <td class="small muted">${esc(d.from)}</td><td>${esc(d.ref)}</td></tr>`).join('')}
+        <td class="small muted">${esc(d.from)}</td><td>${esc(d.ref)}</td>
+        <td>${badge(d.status||'submitted')}</td>
+        <td class="no-print">${(d.status||'submitted')!=='dispatched'
+          ? `<button class="btn btn-sm btn-ghost" onclick="advanceDonation('${d.ownerId}','${d.ref}')">
+               ${(d.status||'submitted')==='submitted'?'تأكيد الاستلام':'تأكيد التوجيه'}</button>`
+          : '<span class="small muted">مكتملة</span>'}</td></tr>`).join('')}
       </tbody></table></div>`
     : '<p class="muted center" style="padding:18px">لا توجد تبرعات واردة بعد.</p>';
   document.getElementById('charity-list').innerHTML = CHARITIES.map(c=>
@@ -1844,11 +1997,15 @@ function renderDonatePartner(){
       <div class="muted small">الأشد احتياجاً: ${c.needs}</div></div>`).join('');
   const dl = document.getElementById('donation-log');
   if(dl.previousElementSibling) dl.previousElementSibling.textContent = 'ملخص التبرعات الواردة';
-  document.getElementById('donation-log').innerHTML = `<div class="grid g3">
+  const k = donationCycleKPI();
+  document.getElementById('donation-log').innerHTML = `<div class="grid g4">
     <div class="kpi"><div class="v">${inc.length}</div><div class="l">عملية تبرع</div></div>
-    <div class="kpi"><div class="v">${pills}</div><div class="l">حبة معاد توجيهها</div></div>
-    <div class="kpi"><div class="v">${new Set(inc.map(d=>d.med)).size}</div><div class="l">صنف دوائي</div></div>
-  </div>`;
+    <div class="kpi ${k.rate>=80?'good':k.rate>=50?'warn':'bad'}"><div class="v">${k.rate}%</div>
+      <div class="l">نسبة إغلاق الدورة</div></div>
+    <div class="kpi"><div class="v">${k.avgDays}</div><div class="l">متوسط زمن الإغلاق (يوم)</div></div>
+    <div class="kpi"><div class="v">${k.pillsClosed}/${k.pills}</div><div class="l">حبة وصلت لمستفيد</div></div>
+  </div>
+  <p class="hint">مؤشر «كفاءة دورة التبرع» (KPI-12): التبرع لا يُحتسب ناجحاً عند التسجيل بل عند وصوله لمستفيد فعلي.</p>`;
 }
 function renderDonate(){
   if(U.role === 'partner') return renderDonatePartner();
@@ -1879,9 +2036,13 @@ function renderDonate(){
       <div class="muted small">الأشد احتياجاً: ${c.needs} · ${c.licence}</div></div>`).join('');
 
   const dons = S.events.filter(e=>e.type==='donation');
+  const stBadge = st => st==='dispatched' ? '<span class="badge b-ok">وصل لمستفيد</span>'
+                     : st==='received'  ? '<span class="badge b-info">استُلم في المستودع</span>'
+                                        : '<span class="badge b-warn">قيد الاستلام</span>';
   document.getElementById('donation-log').innerHTML = dons.length? `<div class="table-wrap"><table>
-    <thead><tr><th>الدواء</th><th>الجهة</th><th>رقم التتبع</th><th>التاريخ</th></tr></thead><tbody>
+    <thead><tr><th>الدواء</th><th>الجهة</th><th>رقم التتبع</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>
     ${dons.map(d=>`<tr><td>${esc(d.med)}</td><td>${esc(d.charity)}</td><td>${esc(d.ref)}</td>
+      <td>${stBadge(d.status||'submitted')}</td>
       <td class="small muted">${new Date(d.at).toLocaleDateString('ar-SA')}</td></tr>`).join('')}
     </tbody></table></div>` : '<p class="muted center" style="padding:14px">لم تسجّل تبرعات بعد.</p>';
 }
@@ -1952,7 +2113,8 @@ function confirmDonate(medId){
   const c = CHARITIES.find(x=>x.id===document.getElementById('don-charity').value);
   const ref = 'DN-'+Math.floor(100000+Math.random()*899999);
   S.events.unshift({type:'donation',at:new Date().toISOString(),med:m.name,qty:m.remaining,
-    charity:c.name, ref, by: actor(),
+    charity:c.name, charityId:c.id, ref, by: actor(),
+    status:'submitted', statusAt:new Date().toISOString(), region:(S.settings.region||c.region),
     text:`تبرّع بـ${m.remaining} حبة من ${m.name} إلى ${c.name} — رقم التتبع ${ref}`
          + (actor() ? ` (بواسطة ${actor()})` : '')});
   m.remaining = 0; persist(); closeModal(); renderDonate();
@@ -1983,6 +2145,13 @@ function renderCaregiver(){
           <div class="small" style="opacity:.85">التزام ٣٠ يوماً</div></div>
       </div>
     </div>
+    ${pendingMeds().length? `<div class="alert warn"><b><i class="fas fa-hourglass-half"></i> طلبات بانتظار موافقتك</b>
+      ${pendingMeds().map(m=>`<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)">
+        <b>${esc(m.name)}</b> <span class="small">${esc((m.riskReasons||[]).join(' · '))}</span>
+        <div class="inline no-print" style="margin-top:8px">
+          <button class="btn btn-sm btn-primary" onclick="approveMed('${m.id}',true)">اعتماد</button>
+          <button class="btn btn-sm btn-danger" onclick="approveMed('${m.id}',false)">رفض</button>
+        </div></div>`).join('')}</div>`:''}
     ${escs.length? `<div class="alert danger"><b><i class="fas fa-bell"></i> تنبيهات تصعيد واردة</b>
       <ul style="margin:8px 0 0;padding-inline-start:18px">
       ${escs.map(e=>`<li>${esc(e.name)} — موعد ${esc(e.time)} · ${new Date(e.at).toLocaleString('ar-SA')}</li>`).join('')}
@@ -2071,10 +2240,11 @@ function renderPartners(){
     {label:'خافضات السكر',value:34},{label:'أدوية الضغط',value:28},{label:'الكوليسترول',value:17},
     {label:'بخاخات الربو',value:12},{label:'مضادات حيوية',value:9}],{suffix:'%',color:'var(--teal)'});
 
+  const kc = donationCycleKPI();
   document.getElementById('partner-kpis').innerHTML = `
     <div class="kpi"><div class="v">${agg.users}</div><div class="l">مستخدمون مسجّلون</div></div>
     <div class="kpi ${agg.pct>=80?'good':agg.pct>=50?'warn':'bad'}"><div class="v">${agg.pct}%</div><div class="l">متوسط الالتزام</div></div>
-    <div class="kpi"><div class="v">${agg.pills}</div><div class="l">حبة معاد توجيهها</div></div>
+    <div class="kpi ${kc.rate>=80?'good':kc.rate>=50?'warn':'bad'}"><div class="v">${kc.rate}%</div><div class="l">كفاءة دورة التبرع</div></div>
     <div class="kpi"><div class="v">${agg.consults}</div><div class="l">استشارة دوائية</div></div>`;
 }
 
@@ -2122,10 +2292,38 @@ function renderSettings(){
       <tr><th>الرمز السري</th><td>محفوظ كبصمة مشفّرة (SHA-256) لا كنص صريح
         <div class="small muted">وفي نسخة الإنتاج تُدار الهوية عبر خادم مع تحقق بخطوتين.</div></td></tr>
     </tbody></table></div>`;
+  const mb = document.getElementById('mode-box');
+  const mode = S.settings.mode || 'independent';
+  const linked = hasCaregiver();
+  document.getElementById('mode-card').classList.toggle('hidden', U.role === 'partner');
+  mb.innerHTML = U.role === 'caregiver'
+    ? `<div class="alert info small">النمط الحالي لمريضك: <b>${mode==='supervised'?'إدارة بإشراف':'إدارة مستقلة'}</b>.
+       تغييره حق للمريض وحده — يمكنك اقتراحه عليه عبر زر «إرسال تذكير».</div>`
+    : `<div class="grid g2">
+        <label class="card" style="margin:0;cursor:pointer;border-color:${mode==='independent'?'var(--teal)':'var(--border)'}">
+          <input type="radio" name="md-mode" value="independent" ${mode==='independent'?'checked':''}
+            onchange="setMode('independent')" style="width:auto"> <b>إدارة مستقلة</b>
+          <div class="small muted" style="margin-top:6px">تضيف أدويتك بحرية. عند إضافة دواء عالي الخطورة يُشعَر مقدم الرعاية دون تعطيلك.</div>
+        </label>
+        <label class="card" style="margin:0;cursor:pointer;border-color:${mode==='supervised'?'var(--teal)':'var(--border)'}">
+          <input type="radio" name="md-mode" value="supervised" ${mode==='supervised'?'checked':''}
+            onchange="setMode('supervised')" style="width:auto"> <b>إدارة بإشراف</b>
+          <div class="small muted" style="margin-top:6px">الأدوية عالية الخطورة فقط تنتظر موافقة مقدم الرعاية قبل جدولتها.</div>
+        </label>
+      </div>
+      ${linked ? '' : '<div class="alert warn small" style="margin-top:12px">لا يوجد مقدم رعاية مرتبط بحسابك، لذا يعمل النظام بنمط الإدارة المستقلة فعلياً.</div>'}`;
   document.getElementById('set-repeat').value = S.settings.repeat;
   document.getElementById('set-esc').value = S.settings.esc;
   document.getElementById('set-voice').checked = S.settings.voice;
   document.getElementById('set-demo').checked = S.settings.demo;
+}
+function setMode(m){
+  S.settings.mode = m; persist(); renderSettings();
+  S.events.unshift({type:'mode', at:new Date().toISOString(),
+    text:'غُيّر نمط إدارة الحساب إلى «'+(m==='supervised'?'إدارة بإشراف':'إدارة مستقلة')+'»'});
+  persist();
+  toast(m==='supervised' ? 'فُعّل نمط الإشراف: الأدوية عالية الخطورة ستنتظر موافقة مقدم الرعاية.'
+                         : 'فُعّل نمط الإدارة المستقلة: تضيف أدويتك دون انتظار.','',6000);
 }
 function saveSettings(){
   S.settings.repeat = Math.max(1,parseInt(document.getElementById('set-repeat').value)||30);
@@ -2196,6 +2394,12 @@ function seedDemo(silent){
   const sid = localStorage.getItem('md_session');
   const u = sid? DB.users().find(x=>x.id===sid) : null;
   if(u) startSession(u);
+
+  /* الحالة النادرة: انقطاع الشبكة أثناء تأكيد الجرعة */
+  const netBanner = () => document.getElementById('net-banner').classList.toggle('hidden', navigator.onLine !== false);
+  window.addEventListener('offline', netBanner);
+  window.addEventListener('online', ()=>{ netBanner(); syncPending(); });
+  netBanner();
 
   setInterval(()=>{ if(U&&U.role==='patient'){ alertTick(); } }, 15000);
   setInterval(()=>{ if(U&&U.role==='patient'&&document.getElementById('screen-home').classList.contains('active')) renderHome(); }, 60000);
